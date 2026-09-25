@@ -1,13 +1,21 @@
 {
-  "name":"Opponent Lineup Report Builder",
-  "short_name":"Lineup",
-  "start_url":"./index.html",
-  "display":"standalone",
-  "background_color":"#08121c",
-  "theme_color":"#08121c",
-  "orientation":"any",
-  "icons":[
-    {"src":"assets/app-icon-192.png","sizes":"192x192","type":"image/png"},
-    {"src":"assets/app-icon-512.png","sizes":"512x512","type":"image/png"}
+  "name": "Opponent Lineup Report Builder",
+  "short_name": "Opponent Lineup",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#08121c",
+  "theme_color": "#08121c",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }

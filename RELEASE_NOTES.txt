@@ -33,7 +33,27 @@ External integrations still need credentials/backend:
 - Mac/iPad cloud sync
 
 
-v2.2
-- outer players kept inside touchlines
-- goal markers moved closer to their player; GK markers lowered
-- added LEFT_CLUB and NEW_SIGNING events/icons
+v2.2.1 FIX
+- restored complete app.js (v2.2 package accidentally contained a truncated script)
+- players/data load restored
+- outer spacing kept inside touchlines
+- goals moved closer to their player, with GK-specific lower anchor
+- Left Club and New Signing statuses/icons added
+
+
+v3.0
+- multi-team Team Manager
+- per-team Report Archive
+- independent player + lineup snapshot for each report
+- team/report selectors in header
+- team import/export, squad CSV/JSON import
+- duplicate/archive/delete teams and reports
+- IndexedDB persistence + full workspace backup
+- archived report read-only protection
+
+v3.1
+- Added field-level manual edit tracking for squad data.
+- Added Edited by me badges.
+- Added Reset to imported value per edited field.
+- Preserved imported baseline values.
+- Historical report snapshots remain unchanged.

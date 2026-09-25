@@ -89,8 +89,31 @@ The report renderer is locked to the approved visual baseline:
 - The same slot geometry feeds the editor, report preview and PPTX export.
 
 
-## v2.2 updates
-- Safer justified spacing inside the touchlines: outer players no longer overflow beyond the field edges.
-- Goal / goal-against markers moved closer to the owning player; goalkeeper goal markers sit lower near the head base and card.
-- New left-side statuses added: Left Club and New Signing.
-- Approved transfer icons added using the door-arrow concept.
+## v2.2.1
+This build fixes the v2.2 truncated JavaScript package and restores full squad/data loading while keeping the requested layout and transfer-status improvements.
+
+
+## v3.0 — Multi-team workspace + report archive
+- Teams manager: add, edit, open, duplicate, archive, delete and export individual teams.
+- Import team backups and import squad files from JSON or CSV.
+- Header selectors for instant team/report switching.
+- Multiple reports per team with independent player snapshots and lineups.
+- New report, duplicate, rename, archive/restore, delete and JSON export.
+- Archived reports are read-only until restored.
+- Old reports keep their player snapshot even if the current squad changes later.
+- Full workspace backup/import for all teams and reports.
+- Data persistence uses IndexedDB with localStorage fallback for better capacity on iPad/Mac.
+- Scouting CSV is now stored per team.
+- Autosave on every edit.
+
+### Import templates
+- `templates/squad_import_template.csv` provides the accepted squad CSV columns.
+- See `QUICK_START.md` for the two-day operational workflow and backup procedure.
+
+## v3.1 — Manual player-data corrections
+- Any imported player field you change manually is marked **Edited by me**.
+- The original imported value is retained in the player record.
+- Each edited field offers **Reset to imported value**.
+- Manually corrected values are used by current/new reports.
+- Archived/historical report snapshots remain unchanged.
+- Squad cards show a visible **Edited by me** badge when a player has at least one manual correction.

@@ -17,6 +17,8 @@
     <div class="brand"><div class="brand-mark">OL</div><div class="brand-text"><strong>Opponent Lineup</strong><span>Report Builder</span></div></div>
     <nav class="nav" id="nav">
       <button data-view="dashboard" class="active"><span>⌂</span><span class="nav-label">Dashboard</span></button>
+      <button data-view="teams"><span>◆</span><span class="nav-label">Teams</span></button>
+      <button data-view="reports"><span>▤</span><span class="nav-label">Reports</span></button>
       <button data-view="squad"><span>◉</span><span class="nav-label">Squad</span></button>
       <button data-view="matches"><span>▦</span><span class="nav-label">Matches</span></button>
       <button data-view="expected"><span>◎</span><span class="nav-label">Expected XI</span></button>
@@ -24,13 +26,13 @@
       <button data-view="report"><span>↗</span><span class="nav-label">Report</span></button>
       <button data-view="scouting"><span>⌕</span><span class="nav-label">Scouting</span><span class="badge">BETA</span></button>
     </nav>
-    <div class="sidebar-footer">Offline-first prototype<br>Golden master: MD14 v0.9</div>
+    <div class="sidebar-footer">Offline-first workspace<br>Golden master: MD14 v0.9 · v3.0</div>
   </aside>
   <main class="main">
-    <header class="topbar"><div><h1 id="topTitle">Dashboard</h1></div><div class="top-actions"><span class="status-dot"></span><span id="teamName" class="muted" style="font-size:12px"></span><button class="btn small ghost" id="resetBtn">Reset demo</button></div></header>
+    <header class="topbar"><div><h1 id="topTitle">Dashboard</h1><div id="contextLine" class="context-line"></div></div><div class="top-actions context-actions"><span class="status-dot"></span><select id="teamSelect" class="context-select" aria-label="Active team"></select><select id="reportSelect" class="context-select" aria-label="Active report"></select><span id="reportStatus" class="context-status">Draft</span><button class="btn small primary" id="quickNewReportBtn">New report</button></div></header>
     <div class="content">
       <section class="view active" id="dashboardView">
-        <div class="view-head"><div><h2>Dashboard</h2><p>Opponent analysis, lineup prediction and report export.</p></div><div class="actions"><button class="btn" id="backupBtn">Export backup</button><label class="btn" style="cursor:pointer">Import backup<input type="file" accept="application/json" id="backupInput" hidden></label></div></div>
+        <div class="view-head"><div><h2>Dashboard</h2><p>Opponent analysis, lineup prediction and report export.</p></div><div class="actions"><button class="btn" id="backupBtn">Export all data</button><label class="btn" style="cursor:pointer">Import all data<input type="file" accept="application/json" id="backupInput" hidden></label></div></div>
         <div class="grid metrics" id="metrics"></div>
         <div class="dashboard-grid">
           <div class="panel"><div class="panel-title"><h3>Previous matches</h3><span id="matchesCount"></span></div><div class="match-list" id="dashboardMatches"></div></div>
@@ -41,6 +43,18 @@
             <button class="quick" data-jump="report"><b>Export report</b><span>Preview, PPTX / Keynote and PDF.</span></button>
           </div></div>
         </div>
+      </section>
+
+      <section class="view" id="teamsView">
+        <div class="view-head"><div><h2>Teams</h2><p>Create, load, duplicate and archive opponent teams. Each team keeps its own squad and report history.</p></div><div class="actions"><button class="btn" id="importTeamBtn">Import team</button><button class="btn primary" id="addTeamBtn">Add team</button><input type="file" id="teamImportInput" accept="application/json,.json" hidden><input type="file" id="squadImportInput" accept="application/json,.json,.csv,text/csv" hidden></div></div>
+        <div id="teamSummary" class="workspace-summary"></div>
+        <div class="team-grid" id="teamGrid"></div>
+      </section>
+
+      <section class="view" id="reportsView">
+        <div class="view-head"><div><h2>Report Archive</h2><p>Every report stores its own lineups and player snapshot. Archived reports are read-only until restored.</p></div><div class="actions"><button class="btn" id="duplicateCurrentReportBtn">Duplicate current</button><button class="btn primary" id="newReportBtn">New report</button></div></div>
+        <div id="reportArchiveSummary" class="workspace-summary"></div>
+        <div class="archive-list" id="reportArchiveList"></div>
       </section>
 
       <section class="view" id="squadView">
@@ -68,7 +82,7 @@
         <div class="report-toolbar">
           <button class="btn primary" id="pptxBtn">Export PPTX / Keynote</button>
           <button class="btn" id="pdfBtn">Print / Save PDF</button>
-          <button class="btn" id="jsonBtn">Export JSON</button>
+          <button class="btn" id="jsonBtn">Export report JSON</button>
           <span class="muted" id="exportStatus" style="font-size:11px"></span>
         </div>
         <div class="report-strip" id="reportStrip"></div>
@@ -90,5 +104,6 @@
 <script src="vendor/pptxgen.min.js"></script>
 <script src="data/seed.js"></script>
 <script src="app.js"></script>
+<script src="workspace.js"></script>
 </body>
 </html>
