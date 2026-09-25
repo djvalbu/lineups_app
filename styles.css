@@ -53,3 +53,14 @@ body{overflow-x:hidden}button,input,select,textarea{font:inherit}button{cursor:p
 .player-edit-badge{position:absolute;right:8px;top:8px;z-index:4;background:#192b3a;border:1px solid rgba(183,246,0,.45);color:#c9ff4a;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:800}
 .player-tile.has-edits{box-shadow:inset 0 0 0 1px rgba(183,246,0,.22)}
 .player-tile .meta em{display:block;margin-top:3px;color:#b7d36a;font-size:9px;font-style:normal;font-weight:700}
+
+/* v3.2 Dongqiudi import */
+.dongqiudi-btn{border-color:#22a6f2!important;color:#c9eaff!important;background:rgba(34,166,242,.10)!important}
+.dongqiudi-btn:hover,.dqd-small:hover{background:rgba(34,166,242,.18)!important}
+.dqd-small{border-color:rgba(34,166,242,.42)!important;color:#a7dcff!important}
+.dqd-import-box{display:grid;gap:10px;margin-top:12px;padding:12px;border:1px solid #30495b;border-radius:12px;background:#10202d}
+.dqd-import-box>div:not(.dqd-progress){display:grid;gap:5px}
+.dqd-check{display:flex!important;align-items:center;gap:8px;color:#c3d0da;font-size:12px;margin:0!important}
+.dqd-check input{width:auto}
+.dqd-progress{border-radius:9px;padding:9px 10px;background:#172c3a;color:#9ec0d5;font-size:11px;line-height:1.45}
+.dqd-progress.error{background:#351c23;color:#ffb8c0;border:1px solid #743340}

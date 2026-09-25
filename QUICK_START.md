@@ -36,3 +36,13 @@ The workspace autosaves locally on the device using IndexedDB (with localStorage
 Open **Squad** → tap the player → change Foot, Height, Name, Squad number, U21, etc. → **Save**.
 Any value that differs from the imported source is marked **Edited by me**.
 Use **Reset to imported value** beside that field to restore the source value.
+
+## Import a team directly from Dongqiudi
+1. Open **Teams**.
+2. Tap **Import from Dongqiudi**.
+3. Leave **China League One 2026** selected.
+4. Choose the team from the dropdown.
+5. Keep **Download player photos** checked.
+6. Tap **Import team**.
+
+The app creates the team and stores its squad. Later, use **Refresh Dongqiudi** on that team card to update the squad. Your fields marked **Edited by me** are not overwritten.

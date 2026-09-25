@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/dongqiudi.js": {
+      "maxDuration": 60
+    },
+    "api/dongqiudi-photo.js": {
+      "maxDuration": 30
+    }
+  }
+}

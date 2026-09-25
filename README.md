@@ -121,3 +121,12 @@ This build fixes the v2.2 truncated JavaScript package and restores full squad/d
 
 ## v3.1.1 — Goal marker spacing
 Goal markers now use a middle-distance anchor on the player's right side. They remain visually attached to the correct player without covering the face. Goalkeeper markers stay lower, near the head/card transition. The same coordinates are used in screen preview and PPTX export.
+
+## v3.2 — Live Dongqiudi team import
+- **Teams → Import from Dongqiudi** now opens a dropdown with the 2026 China League One teams.
+- Choosing a team imports the current live squad from Dongqiudi: number, player name, English/pinyin name when available, height, dominant foot and photo.
+- Player photos and team logo can be downloaded into the local workspace for offline use and PPTX export.
+- Existing teams show **Refresh Dongqiudi**.
+- Refreshing an existing squad preserves every field marked **Edited by me** while updating the imported baseline behind it.
+- Historical reports remain independent snapshots.
+- This feature uses Vercel serverless routes in `/api`, so the full project folder (including `/api` and `vercel.json`) must be pushed to GitHub/Vercel.
