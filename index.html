@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08121c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/app-icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<title>Opponent Lineup</title>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">OL</div><div class="brand-text"><strong>Opponent Lineup</strong><span>Report Builder</span></div></div>
+    <nav class="nav" id="nav">
+      <button data-view="dashboard" class="active"><span>⌂</span><span class="nav-label">Dashboard</span></button>
+      <button data-view="squad"><span>◉</span><span class="nav-label">Squad</span></button>
+      <button data-view="matches"><span>▦</span><span class="nav-label">Matches</span></button>
+      <button data-view="expected"><span>◎</span><span class="nav-label">Expected XI</span></button>
+      <button data-view="subs"><span>⋯</span><span class="nav-label">Main Subs</span></button>
+      <button data-view="report"><span>↗</span><span class="nav-label">Report</span></button>
+      <button data-view="scouting"><span>⌕</span><span class="nav-label">Scouting</span><span class="badge">BETA</span></button>
+    </nav>
+    <div class="sidebar-footer">Offline-first prototype<br>Golden master: MD14 v0.9</div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><h1 id="topTitle">Dashboard</h1></div><div class="top-actions"><span class="status-dot"></span><span id="teamName" class="muted" style="font-size:12px"></span><button class="btn small ghost" id="resetBtn">Reset demo</button></div></header>
+    <div class="content">
+      <section class="view active" id="dashboardView">
+        <div class="view-head"><div><h2>Dashboard</h2><p>Opponent analysis, lineup prediction and report export.</p></div><div class="actions"><button class="btn" id="backupBtn">Export backup</button><label class="btn" style="cursor:pointer">Import backup<input type="file" accept="application/json" id="backupInput" hidden></label></div></div>
+        <div class="grid metrics" id="metrics"></div>
+        <div class="dashboard-grid">
+          <div class="panel"><div class="panel-title"><h3>Previous matches</h3><span id="matchesCount"></span></div><div class="match-list" id="dashboardMatches"></div></div>
+          <div class="panel"><div class="panel-title"><h3>Quick actions</h3><span>Workflow</span></div><div class="quick-grid">
+            <button class="quick" data-jump="matches"><b>Edit matches</b><span>Lineups, results and player events.</span></button>
+            <button class="quick" data-jump="expected"><b>Expected XI</b><span>Build the predicted starting lineup.</span></button>
+            <button class="quick" data-jump="subs"><b>Main Subs</b><span>Select the principal substitutes.</span></button>
+            <button class="quick" data-jump="report"><b>Export report</b><span>Preview, PPTX / Keynote and PDF.</span></button>
+          </div></div>
+        </div>
+      </section>
+
+      <section class="view" id="squadView">
+        <div class="view-head"><div><h2>Squad</h2><p>Player data used by every report page.</p></div><div class="actions"><button class="btn" id="addPlayerBtn">Add player</button></div></div>
+        <div class="squad-grid" id="squadGrid"></div>
+      </section>
+
+      <section class="view" id="matchesView">
+        <div class="view-head"><div><h2>Previous Matches</h2><p>Edit the recent lineups. Tap a slot to assign a player; tap a player to add events.</p></div><div class="actions"><button class="btn" id="addMatchBtn">Add match</button></div></div>
+        <div id="matchEditorHost"></div>
+      </section>
+
+      <section class="view" id="expectedView">
+        <div class="view-head"><div><h2>Expected XI</h2><p>Predicted starting lineup. This becomes the 预计首发名单 page.</p></div></div>
+        <div id="expectedEditorHost"></div>
+      </section>
+
+      <section class="view" id="subsView">
+        <div class="view-head"><div><h2>Main Subs</h2><p>Principal substitute options. This becomes the 主要替补球员 page.</p></div></div>
+        <div id="subsEditorHost"></div>
+      </section>
+
+      <section class="view" id="reportView">
+        <div class="view-head"><div><h2>Report</h2><p>540 × 720 pt golden-master geometry. PPTX remains editable in Keynote.</p></div></div>
+        <div class="report-toolbar">
+          <button class="btn primary" id="pptxBtn">Export PPTX / Keynote</button>
+          <button class="btn" id="pdfBtn">Print / Save PDF</button>
+          <button class="btn" id="jsonBtn">Export JSON</button>
+          <span class="muted" id="exportStatus" style="font-size:11px"></span>
+        </div>
+        <div class="report-strip" id="reportStrip"></div>
+        <div class="report-canvas"><div id="reportPreview"></div></div><div id="printPages" class="print-pages"></div>
+      </section>
+
+      <section class="view" id="scoutingView">
+        <div class="view-head"><div><h2>Scouting</h2><p>Foundation for China League One / Two and CSL talent comparison.</p></div></div>
+        <div class="scouting-columns">
+          <div class="coming"><span class="tag">Wyscout</span><span class="tag">Dongqiudi</span><h3>Dual-source player model</h3><p>The UI/data model is reserved for structured Wyscout metrics plus Dongqiudi identity/transfer context. Automatic live ingestion still requires access credentials or an import file.</p><button class="btn small" id="scoutingImportBtn">Import scouting CSV</button><input id="scoutingFile" type="file" accept=".csv" hidden></div>
+          <div class="coming"><span class="tag">Team Usage</span><span class="tag">Minutes %</span><h3>Position usage visual</h3><p>Player-name size can be encoded by the percentage of team minutes in each position. This module is wired for imported scouting data and will not alter the analyst report template.</p><div id="scoutingStatus" class="muted" style="font-size:11px;margin-top:12px">No scouting dataset imported.</div></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="modal-backdrop hidden" id="modalBackdrop"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+<script src="vendor/pptxgen.min.js"></script>
+<script src="data/seed.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

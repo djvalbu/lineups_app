@@ -1,0 +1,39 @@
+OPPONENT LINEUP APP v2.1
+
+FORMATION LAYOUT FIX
+- Removed horizontal compression that caused adjacent player cards to overlap.
+- Four-player lines: equal justified spacing.
+- Two-player lines: symmetric spacing from the centre.
+- Five-player lines: full-size cards with 3-up / 2-down stagger.
+- Unified geometry across editor, report preview, PDF and PPTX.
+
+OPPONENT LINEUP APP v2
+======================
+
+Implemented since Core v1
+- Full navigation shell for iPad/Mac.
+- Squad manager.
+- Previous-match lineup editor.
+- Expected XI editor.
+- Main Subs editor.
+- Formation templates recovered from the supplied program.
+- Unified PlayerEvent workflow.
+- Approved goal/card/injury icon family.
+- Golden-master report renderer (MD14 v0.9 baseline).
+- Editable PPTX/Keynote export engine.
+- Multi-page Print/PDF flow.
+- JSON backup/restore.
+- Local photo import.
+- PWA/offline cache.
+- Scouting CSV foundation.
+
+External integrations still need credentials/backend:
+- Wyscout live data
+- Dongqiudi automatic refresh
+- Mac/iPad cloud sync
+
+
+v2.2
+- outer players kept inside touchlines
+- goal markers moved closer to their player; GK markers lowered
+- added LEFT_CLUB and NEW_SIGNING events/icons
