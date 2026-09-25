@@ -57,3 +57,9 @@ v3.1
 - Added Reset to imported value per edited field.
 - Preserved imported baseline values.
 - Historical report snapshots remain unchanged.
+
+
+v3.1.1
+- Goal and goal-against markers moved to an intermediate distance from the player: closer than the original layout, but no longer overlapping faces.
+- Goalkeeper goal markers remain lower near the base of the head/card and are moved outward to the right.
+- Same geometry applied to editor, report preview and PPTX export.

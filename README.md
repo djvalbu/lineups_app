@@ -117,3 +117,7 @@ This build fixes the v2.2 truncated JavaScript package and restores full squad/d
 - Manually corrected values are used by current/new reports.
 - Archived/historical report snapshots remain unchanged.
 - Squad cards show a visible **Edited by me** badge when a player has at least one manual correction.
+
+
+## v3.1.1 — Goal marker spacing
+Goal markers now use a middle-distance anchor on the player's right side. They remain visually attached to the correct player without covering the face. Goalkeeper markers stay lower, near the head/card transition. The same coordinates are used in screen preview and PPTX export.
