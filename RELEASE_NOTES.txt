@@ -71,3 +71,10 @@ v3.2
 - Added team refresh from Dongqiudi.
 - Preserves Edited by me fields during refresh.
 - Downloads photos locally when requested.
+
+v3.2.1
+- Fixed PPTX/Keynote export in the browser/PWA.
+- Added missing JSZip runtime dependency required by PptxGenJS.
+- JSZip is loaded before PptxGenJS and cached offline.
+- Improved data-URI image handling.
+- Export errors now display their real technical message instead of only "Export error".

@@ -130,3 +130,6 @@ Goal markers now use a middle-distance anchor on the player's right side. They r
 - Refreshing an existing squad preserves every field marked **Edited by me** while updating the imported baseline behind it.
 - Historical reports remain independent snapshots.
 - This feature uses Vercel serverless routes in `/api`, so the full project folder (including `/api` and `vercel.json`) must be pushed to GitHub/Vercel.
+
+## v3.2.1 — PPTX export hotfix
+PPTX export previously showed `Export error` because the browser build of PptxGenJS requires JSZip as a separate runtime library. v3.2.1 bundles and loads JSZip before PptxGenJS, including in the PWA offline cache.

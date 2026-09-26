@@ -133,10 +133,49 @@ function reportXY(slot){return{xPct:Math.max(0,Math.min(100,slot.x??50)),yPct:15
 function reportPlayerHtml(pos,slot){const p=playerById(pos.playerId);if(!p)return'';const xy=reportXY(slot);const anchorX=xy.xPct/100*540,anchorY=xy.yPct/100*720;const left=anchorX-59.9375,top=anchorY-94.369;const nm=cleanName(p.name),small=nm.length>9;const isGk=slot.label==='GK';const leftEvents=[EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD].filter(t=>hasEvent(pos,t)).map(t=>`<img src="${EVENT_META[t].icon}">`).join('');const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST);return `<div class="report-player" style="left:${left}px;top:${top}px">${leftEvents?`<div class="report-events ${isGk?'gk':''}">${leftEvents}</div>`:''}${gf.length||ga.length?`<div class="report-goals ${isGk?'gk':''}">${gf.length?`<span class="report-goal for"><img src="${EVENT_META.GOAL_FOR.icon}">${minuteString(gf)}</span>`:''}${ga.length?`<span class="report-goal against"><img src="${EVENT_META.GOAL_AGAINST.icon}">${minuteString(ga)}</span>`:''}</div>`:''}${p.photoAsset?`<img class="head" src="${p.photoAsset}">`:''}<div class="report-card"><div class="fill-num"></div><div class="fill-name"></div><div class="fill-foot"></div><div class="fill-height"></div><div class="outer"></div><div class="vline"></div><div class="hline"></div><span class="txt txt-num ${isU21(p)?'u21':''}">${p.squadNumber}</span><span class="txt txt-name ${small?'small':''}">${escapeHtml(nm)}</span><span class="txt txt-foot ${p.foot==='L'?'left':''}">${p.foot||'R'}</span><span class="txt txt-height">${p.height?`${p.height}cm`:'—'}</span></div></div>`}
 function fitPreview(){const canvas=document.querySelector('.report-canvas');const page=document.querySelector('.report-page');if(canvas&&page&&window.innerWidth<720){const scale=Math.min(1,(canvas.clientWidth-12)/540);page.style.transform=`scale(${scale})`;page.parentElement.style.height=`${720*scale}px`;page.parentElement.style.width=`${540*scale}px`}else if(page){page.style.transform='';if(page.parentElement){page.parentElement.style.height='';page.parentElement.style.width=''}}}
 
-async function urlToDataUri(url){if(imageDataCache.has(url))return imageDataCache.get(url);const b=await fetch(url).then(r=>r.blob());const data=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(b)});imageDataCache.set(url,data);return data}
+async function urlToDataUri(url){if(!url)throw new Error('Missing image source');if(String(url).startsWith('data:'))return url;if(imageDataCache.has(url))return imageDataCache.get(url);const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`Image load failed (${r.status}): ${url}`);const b=await r.blob();const data=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(fr.error||new Error('Image conversion failed'));fr.readAsDataURL(b)});imageDataCache.set(url,data);return data}
 function pt(v){return v/72}
 function reportPlayerGeom(slot){const xy=reportXY(slot),anchorX=xy.xPct/100*540,anchorY=xy.yPct/100*720;return{left:anchorX-59.9375,top:anchorY-94.369}}
-async function exportPptx(){const btn=document.getElementById('pptxBtn'),status=document.getElementById('exportStatus');btn.disabled=true;status.textContent='Building editable PPTX…';try{const pptx=new PptxGenJS();pptx.defineLayout({name:'LINEUP_7_5x10',width:7.5,height:10});pptx.layout='LINEUP_7_5x10';pptx.author='Opponent Lineup App';pptx.subject='Opponent lineup prediction';pptx.company='';pptx.lang='zh-CN';pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:'zh-CN'};const field=await urlToDataUri('assets/field_exact_4x.jpg');for(const m of reportPages()){const slide=pptx.addSlide();slide.background={color:'FFFFFF'};slide.addImage({data:field,x:0,y:0,w:7.5,h:10});await addPptxTitle(pptx,slide,m);const tpl=matchTemplate(m);for(const pos of (m.positions||[])){const slot=tpl[pos.positionIndex];const p=playerById(pos.playerId);if(slot&&p)await addPptxPlayer(pptx,slide,p,pos,slot)}}const filename=`Lineup_${(state.team?.nameEn||state.team?.name||'Opponent').replace(/[^\w\-]+/g,'_')}_${typeof currentReportFileStem==='function'?currentReportFileStem():'Report'}_${new Date().toISOString().slice(0,10)}.pptx`;await pptx.writeFile({fileName:filename});status.textContent='PPTX exported';toast('PPTX ready for Keynote')}catch(err){console.error(err);status.textContent='Export error';toast('PPTX export failed')}finally{btn.disabled=false}}
+async function exportPptx(){
+ const btn=document.getElementById('pptxBtn'),status=document.getElementById('exportStatus');
+ btn.disabled=true;status.textContent='Building editable PPTX…';
+ try{
+   if(typeof JSZip==='undefined')throw new Error('JSZip library not loaded');
+   if(typeof PptxGenJS==='undefined')throw new Error('PptxGenJS library not loaded');
+   const pages=reportPages();
+   if(!pages.length)throw new Error('No report pages to export');
+   const pptx=new PptxGenJS();
+   pptx.defineLayout({name:'LINEUP_7_5x10',width:7.5,height:10});
+   pptx.layout='LINEUP_7_5x10';
+   pptx.author='Opponent Lineup App';
+   pptx.subject='Opponent lineup prediction';
+   pptx.company='';
+   pptx.lang='zh-CN';
+   pptx.theme={headFontFace:'Arial',bodyFontFace:'Arial',lang:'zh-CN'};
+   const field=await urlToDataUri('assets/field_exact_4x.jpg');
+   for(const m of pages){
+     const slide=pptx.addSlide();
+     slide.background={color:'FFFFFF'};
+     slide.addImage({data:field,x:0,y:0,w:7.5,h:10});
+     await addPptxTitle(pptx,slide,m);
+     const tpl=matchTemplate(m);
+     for(const pos of (m.positions||[])){
+       const slot=tpl[pos.positionIndex],p=playerById(pos.playerId);
+       if(slot&&p)await addPptxPlayer(pptx,slide,p,pos,slot);
+     }
+   }
+   const filename=`Lineup_${(state.team?.nameEn||state.team?.name||'Opponent').replace(/[^\w\-]+/g,'_')}_${typeof currentReportFileStem==='function'?currentReportFileStem():'Report'}_${new Date().toISOString().slice(0,10)}.pptx`;
+   status.textContent='Creating PPTX file…';
+   await pptx.writeFile({fileName:filename,compression:true});
+   status.textContent='PPTX exported';
+   toast('PPTX ready for Keynote');
+ }catch(err){
+   console.error('PPTX EXPORT ERROR',err);
+   const msg=String(err?.message||err||'Unknown export error');
+   status.textContent=`Export error: ${msg}`;
+   toast('PPTX export failed');
+ }finally{btn.disabled=false}
+}
 async function addPptxTitle(pptx,slide,m){let text,w;if(m.kind==='EXPECTED'){text=state.settings?.reportTitleExpected||'预计首发名单';w=120.269}else if(m.kind==='SUBS'){text=state.settings?.reportTitleSubs||'主要替补球员';w=120.269}else{text=`${m.roundNumber||''}_ VS ${m.opponentName||''} _ ${m.goalsFor||0}-${m.goalsAgainst||0} (${RESULT_CN[m.result]||'平'})`;w=Math.max(185,Math.min(350,80+text.length*10))}slide.addText(text,{x:pt(10.843),y:pt(16.953),w:pt(w),h:pt(32.2),fontFace:'Arial',fontSize:18,color:'FFFFFF',fill:{color:'000000'},line:{color:'000000',transparency:100},margin:0.03,valign:'mid',breakLine:false,fit:'shrink'})}
 async function addPptxPlayer(pptx,slide,p,pos,slot){const g=reportPlayerGeom(slot),cx=g.left,cy=g.top+76.119;const ST=pptx.ShapeType;if(p.photoAsset){const img=await urlToDataUri(p.photoAsset);slide.addImage({data:img,x:pt(g.left+22.438),y:pt(g.top),w:pt(75),h:pt(75),transparency:0})}
  const transparent={color:'FFFFFF',transparency:100};slide.addShape(ST.rect,{x:pt(cx),y:pt(cy),w:pt(30.537),h:pt(20),fill:{color:'000000'},line:{color:'000000',transparency:100}});slide.addShape(ST.rect,{x:pt(cx+30.537),y:pt(cy),w:pt(89.338),h:pt(20),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100}});slide.addShape(ST.rect,{x:pt(cx),y:pt(cy+20),w:pt(30.537),h:pt(16.5),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100}});slide.addShape(ST.rect,{x:pt(cx+30.537),y:pt(cy+20),w:pt(89.338),h:pt(16.5),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100}});slide.addShape(ST.rect,{x:pt(cx-1),y:pt(cy-1),w:pt(121.875),h:pt(38.5),fill:transparent,line:{color:'000000',width:2}});slide.addShape(ST.line,{x:pt(cx+30.537),y:pt(cy-1),w:0,h:pt(38.5),line:{color:'000000',width:2}});slide.addShape(ST.line,{x:pt(cx-1),y:pt(cy+20),w:pt(121.875),h:0,line:{color:'000000',width:2}});
