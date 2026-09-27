@@ -3,8 +3,8 @@
   "short_name": "Opponent Lineup",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#08121c",
-  "theme_color": "#08121c",
+  "background_color": "#03111f",
+  "theme_color": "#031a33",
   "orientation": "any",
   "icons": [
     {

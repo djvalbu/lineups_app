@@ -78,3 +78,26 @@ v3.2.1
 - JSZip is loaded before PptxGenJS and cached offline.
 - Improved data-URI image handling.
 - Export errors now display their real technical message instead of only "Export error".
+
+v3.2.2
+- Goal markers no longer expand backwards over player faces.
+- Multiple goals are separate vertical rows.
+- Goalkeeper goals start lower near the base of the head/card.
+- Same positioning in editor, report preview and PPTX/Keynote.
+
+v3.2.3
+- Restored bench/substitute goal scorer support from the original app.
+- Previous Matches now has a Bench goal scorers section.
+- A scorer can be selected from non-starting squad players and given a goal minute.
+- The scorer chip can be dragged directly on the pitch.
+- Report output shows ONLY number + name cells, followed by the blue ball and minute: no photo, foot or height.
+- Bench scorer geometry is exported to PPTX/Keynote in the same position.
+
+
+v3.3 Blue Club Identity
+- New navy/electric-blue visual identity across the app.
+- Sidebar uses the user-provided club/stadium photograph as the background.
+- Active navigation uses a bright blue club accent.
+- Panels, controls and report chrome use dark-blue glass styling.
+- Functional report geometry, player cards and export logic are unchanged.
+- PWA cache bumped so the new theme refreshes correctly on iPad.

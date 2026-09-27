@@ -133,3 +133,13 @@ Goal markers now use a middle-distance anchor on the player's right side. They r
 
 ## v3.2.1 — PPTX export hotfix
 PPTX export previously showed `Export error` because the browser build of PptxGenJS requires JSZip as a separate runtime library. v3.2.1 bundles and loads JSZip before PptxGenJS, including in the PWA offline cache.
+
+## v3.2.2 — Multi-goal positioning
+Goals are rendered one per line and the stack is anchored just outside the right edge of the player's head, so additional goals cannot grow back over the face. Goalkeeper events start lower.
+
+## v3.2.3 — Bench goal scorers
+In **Previous Matches**, use **Bench goal scorers → Add scorer** when a substitute scores. Choose the player, enter the goal minute, and drag the small scorer card on the pitch. As in the original report format, the exported item contains only the player's **number + name**, followed by the **blue goal ball + minute**.
+
+
+## v3.3 — Blue Club Identity
+The UI has been restyled to the selected **Blue / Club Identity** concept. The left navigation uses the supplied team/stadium image with a dark navy overlay, while the application panels use deep blue glass surfaces and electric-blue interaction states. Report content and export geometry remain unchanged.
