@@ -46,3 +46,6 @@ Use **Reset to imported value** beside that field to restore the source value.
 6. Tap **Import team**.
 
 The app creates the team and stores its squad. Later, use **Refresh Dongqiudi** on that team card to update the squad. Your fields marked **Edited by me** are not overwritten.
+
+## Editing exported players in Keynote
+Export **PPTX / Keynote** and open the file in Keynote. A single click on a lineup player selects the whole player group. You can move it without separating the head, cells or event icons. If the player has goals, the ball + minute remain a nested group after the first Ungroup operation.

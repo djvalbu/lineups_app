@@ -171,6 +171,100 @@ function fitPreview(){const canvas=document.querySelector('.report-canvas');cons
 
 async function urlToDataUri(url){if(!url)throw new Error('Missing image source');if(String(url).startsWith('data:'))return url;if(imageDataCache.has(url))return imageDataCache.get(url);const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`Image load failed (${r.status}): ${url}`);const b=await r.blob();const data=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(fr.error||new Error('Image conversion failed'));fr.readAsDataURL(b)});imageDataCache.set(url,data);return data}
 function pt(v){return v/72}
+
+function pptxObjectKey(v){return String(v??'obj').replace(/[^A-Za-z0-9_-]+/g,'_').slice(0,80)}
+const PPTX_NS_P='http://schemas.openxmlformats.org/presentationml/2006/main';
+const PPTX_NS_A='http://schemas.openxmlformats.org/drawingml/2006/main';
+function pptxDirectChild(el,ns,local){for(const c of Array.from(el.children||[]))if(c.namespaceURI===ns&&c.localName===local)return c;return null}
+function pptxObjectName(el){
+ const nvs=['nvSpPr','nvPicPr','nvGrpSpPr','nvGraphicFramePr','nvCxnSpPr'];
+ for(const nvName of nvs){const nv=pptxDirectChild(el,PPTX_NS_P,nvName);if(!nv)continue;const pr=pptxDirectChild(nv,PPTX_NS_P,'cNvPr');if(pr)return pr.getAttribute('name')||''}
+ return '';
+}
+function pptxElementBounds(el){
+ let xf=null;
+ if(el.localName==='grpSp'){const gp=pptxDirectChild(el,PPTX_NS_P,'grpSpPr');xf=gp?pptxDirectChild(gp,PPTX_NS_A,'xfrm'):null}
+ else if(el.localName==='graphicFrame')xf=pptxDirectChild(el,PPTX_NS_P,'xfrm');
+ else {const spPr=pptxDirectChild(el,PPTX_NS_P,'spPr');xf=spPr?pptxDirectChild(spPr,PPTX_NS_A,'xfrm'):null}
+ if(!xf)return null;
+ const off=pptxDirectChild(xf,PPTX_NS_A,'off'),ext=pptxDirectChild(xf,PPTX_NS_A,'ext');
+ if(!off||!ext)return null;
+ return {x:Number(off.getAttribute('x')||0),y:Number(off.getAttribute('y')||0),cx:Number(ext.getAttribute('cx')||0),cy:Number(ext.getAttribute('cy')||0)};
+}
+function pptxMakeEl(doc,ns,name,attrs={}){
+ const el=doc.createElementNS(ns,name);
+ for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));
+ return el;
+}
+function pptxGroupDirectElements(doc,spTree,elements,groupName,idRef){
+ if(!elements?.length)return null;
+ const ordered=elements.slice().sort((a,b)=>Array.from(spTree.children).indexOf(a)-Array.from(spTree.children).indexOf(b));
+ const boxes=ordered.map(pptxElementBounds).filter(Boolean);
+ if(!boxes.length)return null;
+ const minX=Math.min(...boxes.map(b=>b.x)),minY=Math.min(...boxes.map(b=>b.y));
+ const maxX=Math.max(...boxes.map(b=>b.x+b.cx)),maxY=Math.max(...boxes.map(b=>b.y+b.cy));
+ const cx=Math.max(1,maxX-minX),cy=Math.max(1,maxY-minY);
+ const grp=pptxMakeEl(doc,PPTX_NS_P,'p:grpSp');
+ const nv=pptxMakeEl(doc,PPTX_NS_P,'p:nvGrpSpPr');
+ nv.appendChild(pptxMakeEl(doc,PPTX_NS_P,'p:cNvPr',{id:idRef.value++,name:groupName}));
+ nv.appendChild(pptxMakeEl(doc,PPTX_NS_P,'p:cNvGrpSpPr'));
+ nv.appendChild(pptxMakeEl(doc,PPTX_NS_P,'p:nvPr'));
+ grp.appendChild(nv);
+ const grpPr=pptxMakeEl(doc,PPTX_NS_P,'p:grpSpPr');
+ const xfrm=pptxMakeEl(doc,PPTX_NS_A,'a:xfrm');
+ xfrm.appendChild(pptxMakeEl(doc,PPTX_NS_A,'a:off',{x:minX,y:minY}));
+ xfrm.appendChild(pptxMakeEl(doc,PPTX_NS_A,'a:ext',{cx,cy}));
+ xfrm.appendChild(pptxMakeEl(doc,PPTX_NS_A,'a:chOff',{x:minX,y:minY}));
+ xfrm.appendChild(pptxMakeEl(doc,PPTX_NS_A,'a:chExt',{cx,cy}));
+ grpPr.appendChild(xfrm);grp.appendChild(grpPr);
+ spTree.insertBefore(grp,ordered[0]);
+ for(const el of ordered)grp.appendChild(el);
+ return grp;
+}
+function pptxGroupSlideXml(xml){
+ const doc=new DOMParser().parseFromString(xml,'application/xml');
+ if(doc.getElementsByTagName('parsererror').length)throw new Error('PPTX slide XML could not be parsed for grouping');
+ const spTree=doc.getElementsByTagNameNS(PPTX_NS_P,'spTree')[0];
+ if(!spTree)return xml;
+ let maxId=1;
+ for(const n of Array.from(doc.getElementsByTagNameNS(PPTX_NS_P,'cNvPr')))maxId=Math.max(maxId,Number(n.getAttribute('id')||0));
+ const idRef={value:maxId+1};
+ const directShapes=()=>Array.from(spTree.children).filter(el=>!['nvGrpSpPr','grpSpPr'].includes(el.localName));
+ const prefixes=new Set();
+ for(const el of directShapes()){
+   const name=pptxObjectName(el);
+   const m=name.match(/^((?:PLR|SUB)_.+?)__/);
+   if(m)prefixes.add(m[1]);
+ }
+ for(const prefix of prefixes){
+   // First create nested Ball + Minute groups for every goal.
+   const goalIds=new Set();
+   for(const el of directShapes()){
+     const name=pptxObjectName(el);
+     if(!name.startsWith(prefix+'__GOAL_'))continue;
+     const m=name.slice((prefix+'__GOAL_').length).match(/^(\d+)__/);
+     if(m)goalIds.add(Number(m[1]));
+   }
+   for(const goalId of Array.from(goalIds).sort((a,b)=>a-b)){
+     const marker=`${prefix}__GOAL_${goalId}__`;
+     const items=directShapes().filter(el=>pptxObjectName(el).startsWith(marker));
+     pptxGroupDirectElements(doc,spTree,items,`${prefix}__GOAL_${goalId}`,idRef);
+   }
+   // Then group the whole player: head + card + statuses + nested goal group(s).
+   const playerItems=directShapes().filter(el=>pptxObjectName(el).startsWith(prefix+'__'));
+   pptxGroupDirectElements(doc,spTree,playerItems,prefix,idRef);
+ }
+ return new XMLSerializer().serializeToString(doc);
+}
+async function pptxCreateGroupedBlob(rawBlob){
+ const zip=await JSZip.loadAsync(rawBlob);
+ const slidePaths=Object.keys(zip.files).filter(p=>/^ppt\/slides\/slide\d+\.xml$/.test(p));
+ for(const path of slidePaths){
+   const xml=await zip.file(path).async('string');
+   zip.file(path,pptxGroupSlideXml(xml));
+ }
+ return await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+}
 function reportPlayerGeom(slot){const xy=reportXY(slot),anchorX=xy.xPct/100*540,anchorY=xy.yPct/100*720;return{left:anchorX-59.9375,top:anchorY-94.369}}
 async function exportPptx(){
  const btn=document.getElementById('pptxBtn'),status=document.getElementById('exportStatus');
@@ -192,7 +286,7 @@ async function exportPptx(){
    for(const m of pages){
      const slide=pptx.addSlide();
      slide.background={color:'FFFFFF'};
-     slide.addImage({data:field,x:0,y:0,w:7.5,h:10});
+     slide.addImage({data:field,x:0,y:0,w:7.5,h:10,objectName:'REPORT_FIELD'});
      await addPptxTitle(pptx,slide,m);
      const tpl=matchTemplate(m);
      for(const pos of (m.positions||[])){
@@ -202,10 +296,13 @@ async function exportPptx(){
      if(m.kind==='MATCH')for(const sg of (m.subGoals||[]))await addPptxSubGoal(pptx,slide,sg);
    }
    const filename=`Lineup_${(state.team?.nameEn||state.team?.name||'Opponent').replace(/[^\w\-]+/g,'_')}_${typeof currentReportFileStem==='function'?currentReportFileStem():'Report'}_${new Date().toISOString().slice(0,10)}.pptx`;
-   status.textContent='Creating PPTX file…';
-   await pptx.writeFile({fileName:filename,compression:true});
-   status.textContent='PPTX exported';
-   toast('PPTX ready for Keynote');
+   status.textContent='Creating PPTX objects…';
+   const rawBlob=await pptx.write({outputType:'blob',compression:true});
+   status.textContent='Grouping players for Keynote…';
+   const groupedBlob=await pptxCreateGroupedBlob(rawBlob);
+   downloadBlob(groupedBlob,filename);
+   status.textContent='PPTX exported · players grouped';
+   toast('PPTX ready · each player is grouped');
  }catch(err){
    console.error('PPTX EXPORT ERROR',err);
    const msg=String(err?.message||err||'Unknown export error');
@@ -218,25 +315,60 @@ async function addPptxSubGoal(pptx,slide,sg){
  const ST=pptx.ShapeType,transparent={color:'FFFFFF',transparency:100};
  const name=benchGoalName(sg),num=benchGoalNumber(sg),minute=String(sg?.goalMinute||'').replace(/'/g,'').trim();
  if(!name&&!num)return;
+ const key=`SUB_${pptxObjectKey(sg?.id||`${sg?.playerId||'bench'}_${minute||'goal'}`)}`;
  const cardW=119.875,cardH=20,ballW=15,minuteW=42,gap1=4,gap2=3,totalW=cardW+gap1+ballW+gap2+(minute?minuteW:0);
  const anchorX=Math.max(3,Math.min(97,Number(sg?.posX??50)))/100*540,anchorY=Math.max(3,Math.min(97,Number(sg?.posY??15)))/100*720;
  const left=anchorX-totalW/2,top=anchorY-cardH/2;
- slide.addShape(ST.rect,{x:pt(left),y:pt(top),w:pt(30.537),h:pt(cardH),fill:{color:'000000'},line:{color:'000000',transparency:100}});
- slide.addShape(ST.rect,{x:pt(left+30.537),y:pt(top),w:pt(89.338),h:pt(cardH),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100}});
- slide.addShape(ST.rect,{x:pt(left-1),y:pt(top-1),w:pt(121.875),h:pt(cardH+2),fill:transparent,line:{color:'000000',width:2}});
- slide.addShape(ST.line,{x:pt(left+30.537),y:pt(top-1),w:0,h:pt(cardH+2),line:{color:'000000',width:2}});
+ slide.addShape(ST.rect,{x:pt(left),y:pt(top),w:pt(30.537),h:pt(cardH),fill:{color:'000000'},line:{color:'000000',transparency:100},objectName:`${key}__BASE_NUM_FILL`});
+ slide.addShape(ST.rect,{x:pt(left+30.537),y:pt(top),w:pt(89.338),h:pt(cardH),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100},objectName:`${key}__BASE_NAME_FILL`});
+ slide.addShape(ST.rect,{x:pt(left-1),y:pt(top-1),w:pt(121.875),h:pt(cardH+2),fill:transparent,line:{color:'000000',width:2},objectName:`${key}__BASE_OUTER`});
+ slide.addShape(ST.line,{x:pt(left+30.537),y:pt(top-1),w:0,h:pt(cardH+2),line:{color:'000000',width:2},objectName:`${key}__BASE_DIVIDER`});
  const base={fontFace:'Arial',bold:true,margin:0,align:'center',valign:'mid',breakLine:false,fit:'shrink'};
- slide.addText(String(num||'?'),{...base,x:pt(left),y:pt(top),w:pt(30.537),h:pt(cardH),fontSize:15,color:'FFFFFF'});
- slide.addText(name||'—',{...base,x:pt(left+30.537),y:pt(top),w:pt(89.338),h:pt(cardH),fontSize:name.length>9?11:15,color:'000000'});
+ slide.addText(String(num||'?'),{...base,x:pt(left),y:pt(top),w:pt(30.537),h:pt(cardH),fontSize:15,color:'FFFFFF',objectName:`${key}__BASE_NUM_TEXT`});
+ slide.addText(name||'—',{...base,x:pt(left+30.537),y:pt(top),w:pt(89.338),h:pt(cardH),fontSize:name.length>9?11:15,color:'000000',objectName:`${key}__BASE_NAME_TEXT`});
  const ball=await urlToDataUri(EVENT_META.GOAL_FOR.icon),bx=left+cardW+gap1;
- slide.addImage({data:ball,x:pt(bx),y:pt(top+2.5),w:pt(ballW),h:pt(ballW)});
- if(minute)slide.addText(`( ${minute}' )`,{x:pt(bx+ballW+gap2),y:pt(top+1),w:pt(minuteW),h:pt(17),fontFace:'Arial',fontSize:9,bold:true,color:'0433FF',margin:0,fill:transparent,line:{color:'FFFFFF',transparency:100},breakLine:false,fit:'shrink'});
+ slide.addImage({data:ball,x:pt(bx),y:pt(top+2.5),w:pt(ballW),h:pt(ballW),objectName:`${key}__GOAL_0__BALL`});
+ if(minute)slide.addText(`( ${minute}' )`,{x:pt(bx+ballW+gap2),y:pt(top+1),w:pt(minuteW),h:pt(17),fontFace:'Arial',fontSize:9,bold:true,color:'0433FF',margin:0,fill:transparent,line:{color:'FFFFFF',transparency:100},breakLine:false,fit:'shrink',objectName:`${key}__GOAL_0__MINUTE`});
 }
-async function addPptxPlayer(pptx,slide,p,pos,slot){const g=reportPlayerGeom(slot),cx=g.left,cy=g.top+76.119;const ST=pptx.ShapeType;if(p.photoAsset){const img=await urlToDataUri(p.photoAsset);slide.addImage({data:img,x:pt(g.left+22.438),y:pt(g.top),w:pt(75),h:pt(75),transparency:0})}
- const transparent={color:'FFFFFF',transparency:100};slide.addShape(ST.rect,{x:pt(cx),y:pt(cy),w:pt(30.537),h:pt(20),fill:{color:'000000'},line:{color:'000000',transparency:100}});slide.addShape(ST.rect,{x:pt(cx+30.537),y:pt(cy),w:pt(89.338),h:pt(20),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100}});slide.addShape(ST.rect,{x:pt(cx),y:pt(cy+20),w:pt(30.537),h:pt(16.5),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100}});slide.addShape(ST.rect,{x:pt(cx+30.537),y:pt(cy+20),w:pt(89.338),h:pt(16.5),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100}});slide.addShape(ST.rect,{x:pt(cx-1),y:pt(cy-1),w:pt(121.875),h:pt(38.5),fill:transparent,line:{color:'000000',width:2}});slide.addShape(ST.line,{x:pt(cx+30.537),y:pt(cy-1),w:0,h:pt(38.5),line:{color:'000000',width:2}});slide.addShape(ST.line,{x:pt(cx-1),y:pt(cy+20),w:pt(121.875),h:0,line:{color:'000000',width:2}});
- const base={fontFace:'Arial',bold:true,margin:0,align:'center',valign:'mid',breakLine:false,fit:'shrink'};slide.addText(String(p.squadNumber??''),{...base,x:pt(cx),y:pt(cy),w:pt(30.537),h:pt(20),fontSize:15,color:isU21(p)?'00FDFF':'FFFFFF'});const nm=cleanName(p.name);slide.addText(nm,{...base,x:pt(cx+30.537),y:pt(cy),w:pt(89.338),h:pt(20),fontSize:nm.length>9?11:15,color:'000000'});slide.addText(p.foot||'R',{...base,x:pt(cx),y:pt(cy+20),w:pt(30.537),h:pt(16.5),fontSize:12,color:p.foot==='L'?'FF1900':'000000'});slide.addText(p.height?`${p.height}cm`:'',{...base,x:pt(cx+30.537),y:pt(cy+20),w:pt(89.338),h:pt(16.5),fontSize:12,color:'000000'});
- let evY=g.top+5;for(const type of [EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD])if(hasEvent(pos,type)){const data=await urlToDataUri(EVENT_META[type].icon);slide.addImage({data,x:pt(g.left-17),y:pt(evY),w:pt(20),h:pt(20)});evY+=22}
- const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST);const isGk=slot.label==='GK';let gy=g.top+(isGk?48:8);const gx=g.left+101,tx=g.left+118;const goalItems=[...gf.map(e=>({e,type:EVENT_TYPES.GOAL_FOR,color:'0433FF'})),...ga.map(e=>({e,type:EVENT_TYPES.GOAL_AGAINST,color:'FF1900'}))];for(const item of goalItems){const data=await urlToDataUri(EVENT_META[item.type].icon);slide.addImage({data,x:pt(gx),y:pt(gy),w:pt(15),h:pt(15)});slide.addText(minuteLabel(item.e),{x:pt(tx),y:pt(gy-1),w:pt(42),h:pt(17),fontFace:'Arial',fontSize:9,bold:true,color:item.color,margin:0,fill:transparent,line:{color:'FFFFFF',transparency:100},breakLine:false,fit:'shrink'});gy+=16}}
+async function addPptxPlayer(pptx,slide,p,pos,slot){
+ const g=reportPlayerGeom(slot),cx=g.left,cy=g.top+76.119,ST=pptx.ShapeType;
+ const key=`PLR_${pptxObjectKey(pos?.id||`${p?.id||'player'}_${pos?.positionIndex??0}`)}`;
+ if(p.photoAsset){
+   const img=await urlToDataUri(p.photoAsset);
+   slide.addImage({data:img,x:pt(g.left+22.438),y:pt(g.top),w:pt(75),h:pt(75),transparency:0,objectName:`${key}__BASE_HEAD`});
+ }
+ const transparent={color:'FFFFFF',transparency:100};
+ slide.addShape(ST.rect,{x:pt(cx),y:pt(cy),w:pt(30.537),h:pt(20),fill:{color:'000000'},line:{color:'000000',transparency:100},objectName:`${key}__BASE_NUM_FILL`});
+ slide.addShape(ST.rect,{x:pt(cx+30.537),y:pt(cy),w:pt(89.338),h:pt(20),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100},objectName:`${key}__BASE_NAME_FILL`});
+ slide.addShape(ST.rect,{x:pt(cx),y:pt(cy+20),w:pt(30.537),h:pt(16.5),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100},objectName:`${key}__BASE_FOOT_FILL`});
+ slide.addShape(ST.rect,{x:pt(cx+30.537),y:pt(cy+20),w:pt(89.338),h:pt(16.5),fill:{color:'FFFFFF'},line:{color:'FFFFFF',transparency:100},objectName:`${key}__BASE_HEIGHT_FILL`});
+ slide.addShape(ST.rect,{x:pt(cx-1),y:pt(cy-1),w:pt(121.875),h:pt(38.5),fill:transparent,line:{color:'000000',width:2},objectName:`${key}__BASE_OUTER`});
+ slide.addShape(ST.line,{x:pt(cx+30.537),y:pt(cy-1),w:0,h:pt(38.5),line:{color:'000000',width:2},objectName:`${key}__BASE_VLINE`});
+ slide.addShape(ST.line,{x:pt(cx-1),y:pt(cy+20),w:pt(121.875),h:0,line:{color:'000000',width:2},objectName:`${key}__BASE_HLINE`});
+ const base={fontFace:'Arial',bold:true,margin:0,align:'center',valign:'mid',breakLine:false,fit:'shrink'};
+ slide.addText(String(p.squadNumber??''),{...base,x:pt(cx),y:pt(cy),w:pt(30.537),h:pt(20),fontSize:15,color:isU21(p)?'00FDFF':'FFFFFF',objectName:`${key}__BASE_NUM_TEXT`});
+ const nm=cleanName(p.name);
+ slide.addText(nm,{...base,x:pt(cx+30.537),y:pt(cy),w:pt(89.338),h:pt(20),fontSize:nm.length>9?11:15,color:'000000',objectName:`${key}__BASE_NAME_TEXT`});
+ slide.addText(p.foot||'R',{...base,x:pt(cx),y:pt(cy+20),w:pt(30.537),h:pt(16.5),fontSize:12,color:p.foot==='L'?'FF1900':'000000',objectName:`${key}__BASE_FOOT_TEXT`});
+ slide.addText(p.height?`${p.height}cm`:'',{...base,x:pt(cx+30.537),y:pt(cy+20),w:pt(89.338),h:pt(16.5),fontSize:12,color:'000000',objectName:`${key}__BASE_HEIGHT_TEXT`});
+ let evY=g.top+5,evIndex=0;
+ for(const type of [EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD]){
+   if(!hasEvent(pos,type))continue;
+   const data=await urlToDataUri(EVENT_META[type].icon);
+   slide.addImage({data,x:pt(g.left-17),y:pt(evY),w:pt(20),h:pt(20),objectName:`${key}__STATUS_${evIndex++}_${type}`});
+   evY+=22;
+ }
+ const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST),isGk=slot.label==='GK';
+ let gy=g.top+(isGk?48:8);
+ const gx=g.left+101,tx=g.left+118;
+ const goalItems=[...gf.map(e=>({e,type:EVENT_TYPES.GOAL_FOR,color:'0433FF'})),...ga.map(e=>({e,type:EVENT_TYPES.GOAL_AGAINST,color:'FF1900'}))];
+ for(let i=0;i<goalItems.length;i++){
+   const item=goalItems[i],data=await urlToDataUri(EVENT_META[item.type].icon);
+   slide.addImage({data,x:pt(gx),y:pt(gy),w:pt(15),h:pt(15),objectName:`${key}__GOAL_${i}__BALL`});
+   slide.addText(minuteLabel(item.e),{x:pt(tx),y:pt(gy-1),w:pt(42),h:pt(17),fontFace:'Arial',fontSize:9,bold:true,color:item.color,margin:0,fill:transparent,line:{color:'FFFFFF',transparency:100},breakLine:false,fit:'shrink',objectName:`${key}__GOAL_${i}__MINUTE`});
+   gy+=16;
+ }
+}
 function fileToDataUri(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)})}
 function downloadBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});downloadBlob(blob,`Opponent_Lineup_Backup_${new Date().toISOString().slice(0,10)}.json`)}
 function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}

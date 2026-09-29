@@ -101,3 +101,11 @@ v3.3 Blue Club Identity
 - Panels, controls and report chrome use dark-blue glass styling.
 - Functional report geometry, player cards and export logic are unchanged.
 - PWA cache bumped so the new theme refreshes correctly on iPad.
+
+v3.4 Blue Club — Grouped PPTX / Keynote
+- PPTX export now creates real OOXML groups.
+- Each starting player is one top-level group: head + player card + all status/event icons + goal subgroup(s).
+- Every goal is a nested subgroup containing ball + minute.
+- One Ungroup action exposes the player's components while each goal remains grouped.
+- Bench goal scorers are also grouped as one player unit; ball + minute is a nested goal subgroup.
+- Grouping changes editability only; layout coordinates and report appearance are unchanged.

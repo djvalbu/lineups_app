@@ -143,3 +143,14 @@ In **Previous Matches**, use **Bench goal scorers → Add scorer** when a substi
 
 ## v3.3 — Blue Club Identity
 The UI has been restyled to the selected **Blue / Club Identity** concept. The left navigation uses the supplied team/stadium image with a dark navy overlay, while the application panels use deep blue glass surfaces and electric-blue interaction states. Report content and export geometry remain unchanged.
+
+## v3.4 — Grouped players in PPTX / Keynote
+The PPTX exporter now post-processes the generated OOXML and creates native PowerPoint/Keynote groups.
+
+For every lineup player:
+- **Player group**: head + number/name/foot/height card + injury/cards/transfer status + goal group(s).
+- **Goal subgroup**: ball + minute.
+- Moving the player group moves the complete player unit.
+- Ungrouping the player once leaves each goal as its own ball+minute subgroup.
+
+Bench scorers are grouped with the same principle. The visual geometry is unchanged from the approved report.
