@@ -190,7 +190,7 @@ function downloadReportJson(){exportReportJson(activeReport()?.id);}
 
 
 const _baseRenderSquad=renderSquad;
-renderSquad=function(){const grid=document.getElementById('squadGrid');if(!grid)return;grid.innerHTML=state.players.map(p=>`<button class="player-tile ${hasManualEdits(p)?'has-edits':''}" data-player="${p.id}"><span class="num-chip ${isU21(p)?'u21':''}">${p.squadNumber}</span>${hasManualEdits(p)?`<span class="player-edit-badge" title="${editedFieldKeys(p).map(k=>k).join(', ')}">Edited by me</span>`:''}<div class="photo-wrap">${p.photoAsset?`<img src="${p.photoAsset}" alt="">`:''}</div><div class="meta"><b>${escapeHtml(cleanName(p.name))}</b><small>${escapeHtml(p.nameEn||'')} · ${p.foot||'R'} · ${p.height?`${p.height}cm`:'—'}</small>${hasManualEdits(p)?`<em>${editedFieldKeys(p).length} manual ${editedFieldKeys(p).length===1?'edit':'edits'}</em>`:''}</div></button>`).join('');grid.querySelectorAll('[data-player]').forEach(b=>b.onclick=()=>openPlayerModal(b.dataset.player));};
+renderSquad=function(){const grid=document.getElementById('squadGrid');if(!grid)return;grid.innerHTML=state.players.map(p=>`<button class="player-tile ${hasManualEdits(p)?'has-edits':''}" data-player="${p.id}"><span class="num-chip ${isU21(p)?'u21':''}">${p.squadNumber}</span>${hasManualEdits(p)?`<span class="player-edit-badge" title="${editedFieldKeys(p).map(k=>k).join(', ')}">Edited by me</span>`:''}<div class="photo-wrap">${p.photoAsset?`<img src="${p.photoAsset}" alt="">`:''}</div><div class="meta"><b>${escapeHtml(cleanName(p.name))}</b><small>${escapeHtml(p.nameEn||'')} · ${footDisplayHtml(p.foot)} · ${p.height?`${p.height}cm`:'—'}</small>${hasManualEdits(p)?`<em>${editedFieldKeys(p).length} manual ${editedFieldKeys(p).length===1?'edit':'edits'}</em>`:''}</div></button>`).join('');grid.querySelectorAll('[data-player]').forEach(b=>b.onclick=()=>openPlayerModal(b.dataset.player));};
 
 const _baseBindEditor=bindEditor;
 bindEditor=function(host,m,mode){_baseBindEditor(host,m,mode);if(isArchivedReport()){host.querySelectorAll('[data-field],[data-save],[data-delete]').forEach(el=>{el.disabled=true;el.title='Archived report is read-only';});host.classList.add('read-only-editor');}};
@@ -212,7 +212,7 @@ openPlayerModal=function(id){
  <div class="player-origin-row">${statusLine}</div>
  <div class="form-row">
    <div><label>${fieldLabelHtml(p,'squadNumber','Squad number')}</label><input class="input" id="pNum" type="number" value="${p.squadNumber??''}"></div>
-   <div><label>${fieldLabelHtml(p,'foot','Foot')}</label><select id="pFoot"><option value="R" ${p.foot==='R'?'selected':''}>R</option><option value="L" ${p.foot==='L'?'selected':''}>L</option><option value="BOTH" ${p.foot==='BOTH'?'selected':''}>BOTH</option></select></div>
+   <div><label>${fieldLabelHtml(p,'foot','Foot')}</label><select id="pFoot"><option value="R" ${p.foot==='R'?'selected':''}>R</option><option value="L" ${p.foot==='L'?'selected':''}>L</option><option value="BOTH" ${p.foot==='BOTH'?'selected':''}>L R</option></select></div>
  </div>
  <div style="margin-top:8px"><label>${fieldLabelHtml(p,'name','Name shown on report')}</label><input class="input" id="pName" value="${escapeHtml(cleanName(p.name))}"></div>
  <div style="margin-top:8px"><label>${fieldLabelHtml(p,'nameEn','English / pinyin name')}</label><input class="input" id="pNameEn" value="${escapeHtml(p.nameEn||'')}"></div>

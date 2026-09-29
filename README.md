@@ -154,3 +154,6 @@ For every lineup player:
 - Ungrouping the player once leaves each goal as its own ball+minute subgroup.
 
 Bench scorers are grouped with the same principle. The visual geometry is unchanged from the approved report.
+
+## v3.4.1 — Both-foot display
+When a player's preferred foot is set to both feet, the app now displays **L R** instead of `BOTH`: **L is red** and **R is black**. This applies to the pitch editor, report preview and editable PPTX/Keynote export while preserving `BOTH` internally for data compatibility.

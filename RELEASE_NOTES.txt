@@ -109,3 +109,10 @@ v3.4 Blue Club — Grouped PPTX / Keynote
 - One Ungroup action exposes the player's components while each goal remains grouped.
 - Bench goal scorers are also grouped as one player unit; ball + minute is a nested goal subgroup.
 - Grouping changes editability only; layout coordinates and report appearance are unchanged.
+
+v3.4.1
+- Corrected preferred-foot display for two-footed players.
+- BOTH is no longer shown to the user in lineup cards or reports.
+- Two-footed players now display L R, with L in red and R in black.
+- The same L(red) R(black) formatting is exported to editable PPTX/Keynote.
+- Internal value remains BOTH for compatibility with saved data and imports.

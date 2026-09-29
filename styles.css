@@ -278,3 +278,12 @@ label{color:#9cb7ca}
   .sidebar{background:linear-gradient(180deg,#062947,#041d34);border-top:1px solid #165985;border-right:0}
   .nav button.active{background:linear-gradient(135deg,#078cff,#0869dc)}
 }
+
+/* v3.4.1 preferred foot: BOTH is displayed as L R */
+.foot-both{display:inline-flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap}
+.foot-l{color:#ff1900!important}
+.foot-r{color:#000!important}
+.player-tile .meta small .foot-r,.picker-item small .foot-r{color:inherit!important}
+.player-tile .meta small .foot-l,.picker-item small .foot-l{color:#ff4b43!important}
+.mini-card .foot .foot-both,.report-card .txt-foot .foot-both{width:100%;height:100%;display:flex;align-items:center;justify-content:center;gap:3px}
+.mini-card .foot .foot-r,.report-card .txt-foot .foot-r{color:#000!important}
