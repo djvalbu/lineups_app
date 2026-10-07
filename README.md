@@ -157,3 +157,6 @@ Bench scorers are grouped with the same principle. The visual geometry is unchan
 
 ## v3.4.1 — Both-foot display
 When a player's preferred foot is set to both feet, the app now displays **L R** instead of `BOTH`: **L is red** and **R is black**. This applies to the pitch editor, report preview and editable PPTX/Keynote export while preserving `BOTH` internally for data compatibility.
+
+## v3.5 — Summary Report
+Select **Full Report** or **Summary Report** in the Report view. Summary Report reproduces the supplied two-slide Keynote structure: the last three matches on slide 1, and Expected XI + Main Subs on slide 2. Use **Home match** in Previous Matches so the Summary score is displayed in Home–Away order. Team settings include **Report Initials** for filenames such as `2026_MD26_YBLD.pptx`.

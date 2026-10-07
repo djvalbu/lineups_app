@@ -116,3 +116,14 @@ v3.4.1
 - Two-footed players now display L R, with L in red and R in black.
 - The same L(red) R(black) formatting is exported to editable PPTX/Keynote.
 - Internal value remains BOTH for compatibility with saved data and imports.
+
+v3.5
+- Added Full Report / Summary Report selector.
+- Summary Slide 1 = last 3 matches automatically, events included, lineups rendered as images.
+- Added Home match checkbox; Summary score always displayed Home–Away.
+- Summary headers: Round, Chinese opponent, English opponent, score, W/D/L.
+- Summary Slide 2 = Expected XI + Main Subs as images.
+- Blue background sampled from supplied Keynote (#73BFF9 → #3374B6).
+- Full filename: 2026_Lineup Prediction_MD{next}_{INITIALS}.pptx
+- Summary filename: 2026_MD{next}_{INITIALS}.pptx
+- Added editable Report Initials in Team settings.
