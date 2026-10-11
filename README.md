@@ -166,7 +166,7 @@ For goalkeepers, red Goal Against markers begin at the **upper-right corner of t
 
 Summary Report result colors:
 - **W** = red
-- **D** = navy blue
+- **D** = Blueberry blue
 - **L** = green
 
 ## v3.5.2 — Startup hotfix
@@ -179,3 +179,6 @@ This applies to existing photos, Dongqiudi imports and photos uploaded manually.
 
 ## v3.5.5 — Automatic name fitting
 Player names now use width-based fitting rather than a simple character-count rule. The app starts at the normal font size and reduces it **one point at a time** only when the text is too close to the cell boundaries. The same sizing logic is used on screen, in Summary Report images, and in editable PPTX/Keynote exports.
+
+## v3.5.6 — Blueberry draw color
+The draw/result color used in the Summary Report (on-screen and PPTX/Keynote export) has been changed from a very dark navy to a lighter **Blueberry** blue to better match the desired Keynote appearance.

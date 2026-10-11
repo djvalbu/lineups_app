@@ -309,7 +309,7 @@ async function renderLineupSnapshotPng(m){
  const data=canvas.toDataURL('image/png');summaryImageCache.set(key,data);return data;
 }
 function summaryMatches(){return filledPreviousMatches().slice(-3)}
-function summaryResultColor(code){return code==='W'?'#ff3b30':code==='D'?'#0b2e59':'#30b64a'}
+function summaryResultColor(code){return code==='W'?'#ff3b30':code==='D'?'#4a67ff':'#30b64a'}
 async function renderSummarySlideCanvas(pageIndex){
  const canvas=document.createElement('canvas');canvas.width=1920;canvas.height=1080;const ctx=canvas.getContext('2d');const grad=ctx.createLinearGradient(0,0,0,1080);grad.addColorStop(0,'rgb(115,191,249)');grad.addColorStop(1,'rgb(51,116,182)');ctx.fillStyle=grad;ctx.fillRect(0,0,1920,1080);
  if(pageIndex===0){
@@ -507,7 +507,7 @@ async function addSummaryHeader(pptx,slide,m,x,y,w,h){
  slide.addText(m.opponentName||'',{x:x+ws[0],y:y+.015,w:ws[1],h:h*.47,fontFace:'PingFang SC',fontSize:6.8,bold:true,align:'center',valign:'mid',margin:0,fit:'shrink'});
  slide.addText(String(m.opponentNameEn||'').toUpperCase(),{x:x+ws[0],y:y+h*.46,w:ws[1],h:h*.49,fontFace:'Arial',fontSize:6.8,bold:true,align:'center',valign:'mid',margin:0,fit:'shrink'});
  slide.addText(score,{x:x+ws[0]+ws[1],y,w:ws[2],h,fontFace:'Arial',fontSize:12,bold:true,align:'center',valign:'mid',margin:0});
- const color=result==='W'?'FF3B30':result==='D'?'0B2E59':'30B64A';slide.addText(`${RESULT_CN[result]} (${result})`,{x:x+ws[0]+ws[1]+ws[2],y,w:ws[3],h,fontFace:'Arial',fontSize:11,bold:true,color,align:'center',valign:'mid',margin:0,fit:'shrink'});
+ const color=result==='W'?'FF3B30':result==='D'?'4A67FF':'30B64A';slide.addText(`${RESULT_CN[result]} (${result})`,{x:x+ws[0]+ws[1]+ws[2],y,w:ws[3],h,fontFace:'Arial',fontSize:11,bold:true,color,align:'center',valign:'mid',margin:0,fit:'shrink'});
 }
 async function exportSummaryPptx(){
  if(typeof ensureActivePhotoCutouts==='function')await ensureActivePhotoCutouts();

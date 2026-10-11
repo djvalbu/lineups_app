@@ -160,3 +160,8 @@ v3.5.5 — Auto Name Fit
 - This fixes names such as PELLENARD without unnecessarily shrinking shorter names.
 - Applied to Previous Matches, Full Report, Summary Report, bench scorers and PPTX/Keynote.
 - v3.5.4 transparent-player-photo functionality is preserved.
+
+v3.5.6 — Blueberry Draw Color
+- Changed Summary Report draw/result color from dark navy to a lighter Blueberry blue.
+- Applied consistently to on-screen summary pages and PPTX/Keynote export.
+- Previous v3.5.5 auto name fitting remains intact.
