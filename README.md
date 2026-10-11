@@ -168,3 +168,6 @@ Summary Report result colors:
 - **W** = red
 - **D** = navy blue
 - **L** = green
+
+## v3.5.2 — Startup hotfix
+v3.5.1 could fail during `renderAll()` because the `renderReport()` dispatcher was missing even though `renderFullReport()` and Summary export code existed. v3.5.2 restores that dispatcher and bumps the PWA cache. The workspace database and localStorage keys are unchanged, so this hotfix does not intentionally delete or migrate teams/reports.

@@ -244,6 +244,32 @@ function reportPageHtml(m){const tpl=matchTemplate(m);let title='';if(m.kind==='
  const players=(m.positions||[]).map(pos=>{const slot=tpl[pos.positionIndex];if(!slot)return'';return reportPlayerHtml(pos,slot)}).join('');const subGoals=m.kind==='MATCH'?(m.subGoals||[]).map(reportSubGoalHtml).join(''):'';return `<div class="report-page"><img class="field-img" src="assets/field_exact_4x.jpg"><div class="report-title">${escapeHtml(title)}</div>${subGoals}${players}</div>`}
 function reportXY(slot){return{xPct:Math.max(0,Math.min(100,slot.x??50)),yPct:15.1+.885*(slot.y??50)}}
 function reportPlayerHtml(pos,slot){const p=playerById(pos.playerId);if(!p)return'';const xy=reportXY(slot);const anchorX=xy.xPct/100*540,anchorY=xy.yPct/100*720;const left=anchorX-59.9375,top=anchorY-94.369;const nm=cleanName(p.name),small=nm.length>9;const isGk=slot.label==='GK';const leftEvents=[EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD].filter(t=>hasEvent(pos,t)).map(t=>`<img src="${EVENT_META[t].icon}">`).join('');const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST);const gfRows=gf.map(e=>`<span class="report-goal for"><img src="${EVENT_META.GOAL_FOR.icon}">${minuteLabel(e)}</span>`).join('');const gaRows=ga.map(e=>`<span class="report-goal against"><img src="${EVENT_META.GOAL_AGAINST.icon}">${minuteLabel(e)}</span>`).join('');const goalHtml=isGk?`${gfRows?`<div class="report-goals gk gk-for">${gfRows}</div>`:''}${gaRows?`<div class="report-goals gk-conceded">${gaRows}</div>`:''}`:(gfRows||gaRows?`<div class="report-goals">${gfRows}${gaRows}</div>`:'');return `<div class="report-player" style="left:${left}px;top:${top}px">${leftEvents?`<div class="report-events ${isGk?'gk':''}">${leftEvents}</div>`:''}${goalHtml}${p.photoAsset?`<img class="head" src="${p.photoAsset}">`:''}<div class="report-card"><div class="fill-num"></div><div class="fill-name"></div><div class="fill-foot"></div><div class="fill-height"></div><div class="outer"></div><div class="vline"></div><div class="hline"></div><span class="txt txt-num ${isU21(p)?'u21':''}">${p.squadNumber}</span><span class="txt txt-name ${small?'small':''}">${escapeHtml(nm)}</span><span class="txt txt-foot">${footDisplayHtml(p.foot)}</span><span class="txt txt-height">${p.height?`${p.height}cm`:'—'}</span></div></div>`}
+async function renderSummaryReport(){
+ document.body.dataset.reportMode='SUMMARY';
+ const strip=document.getElementById('reportStrip'),preview=document.getElementById('reportPreview'),pp=document.getElementById('printPages');
+ if(!strip||!preview)return;
+ strip.innerHTML=[0,1].map(i=>`<button class="report-thumb summary-thumb ${i===ui.reportIndex?'active':''}" data-summary-page="${i}"><div class="tiny summary-tiny"><span>${i===0?'3 Matches':'XI + Subs'}</span></div><span>Slide ${i+1}</span></button>`).join('');
+ strip.querySelectorAll('[data-summary-page]').forEach(b=>b.onclick=()=>{ui.reportIndex=Number(b.dataset.summaryPage);renderSummaryReport()});
+ preview.innerHTML='<div class="summary-loading">Rendering Summary Report…</div>';
+ try{
+   const data=await renderSummarySlideCanvas(ui.reportIndex);
+   preview.innerHTML=`<img class="summary-report-page" src="${data}" alt="Summary slide ${ui.reportIndex+1}">`;
+   if(pp){
+     const both=await Promise.all([renderSummarySlideCanvas(0),renderSummarySlideCanvas(1)]);
+     pp.innerHTML=both.map((src,i)=>`<div class="summary-print-slide"><img src="${src}" alt="Summary ${i+1}"></div>`).join('');
+   }
+ }catch(e){
+   console.error('SUMMARY PREVIEW ERROR',e);
+   preview.innerHTML=`<div class="empty-state">Summary preview error: ${escapeHtml(String(e?.message||e))}</div>`;
+ }
+ fitPreview();
+}
+function renderReport(){
+ const mode=ui.reportMode==='SUMMARY'?'SUMMARY':'FULL';
+ document.body.dataset.reportMode=mode;
+ const sel=document.getElementById('reportModeSelect');if(sel)sel.value=mode;
+ return mode==='SUMMARY'?renderSummaryReport():renderFullReport();
+}
 function fitPreview(){const canvas=document.querySelector('.report-canvas'),summary=document.querySelector('.summary-report-page'),page=document.querySelector('.report-page');if(canvas&&summary){const scale=Math.min(1,(canvas.clientWidth-18)/1024);summary.style.transform=`scale(${scale})`;summary.parentElement.style.height=`${576*scale}px`;summary.parentElement.style.width=`${1024*scale}px`;return}if(canvas&&page&&window.innerWidth<720){const scale=Math.min(1,(canvas.clientWidth-12)/540);page.style.transform=`scale(${scale})`;page.parentElement.style.height=`${720*scale}px`;page.parentElement.style.width=`${540*scale}px`}else if(page){page.style.transform='';if(page.parentElement){page.parentElement.style.height='';page.parentElement.style.width=''}}}
 
 async function urlToDataUri(url){if(!url)throw new Error('Missing image source');if(String(url).startsWith('data:'))return url;if(imageDataCache.has(url))return imageDataCache.get(url);const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`Image load failed (${r.status}): ${url}`);const b=await r.blob();const data=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(fr.error||new Error('Image conversion failed'));fr.readAsDataURL(b)});imageDataCache.set(url,data);return data}

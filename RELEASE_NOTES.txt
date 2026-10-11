@@ -134,3 +134,10 @@ v3.5.1
 - Applied consistently to Previous Matches, Full Report preview, Summary Report lineup images, and editable PPTX/Keynote.
 - Summary Report result colors fixed to the requested convention:
   W = red, D = navy blue, L = green.
+
+v3.5.2 HOTFIX
+- Fixed startup crash: `Can't find variable: renderReport`.
+- Restored the missing Full Report / Summary Report dispatcher.
+- Restored Summary Report preview rendering.
+- PWA cache version bumped so iPad/Safari refreshes the repaired JavaScript.
+- No workspace storage keys or IndexedDB names changed.
