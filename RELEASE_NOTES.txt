@@ -152,3 +152,11 @@ v3.5.4 — Transparent Player Photos
 - A compact pre-removal original is retained for current squad players for future reprocessing.
 - Historical report snapshots receive the transparent image without duplicating the retained original.
 - Export waits for the active report's photo cleanup to complete before generating PPTX.
+
+v3.5.5 — Auto Name Fit
+- Player names are measured against the real available width of their cell.
+- The normal font size is preserved whenever it fits.
+- If a name is too tight, the font is reduced exactly one point at a time until it fits.
+- This fixes names such as PELLENARD without unnecessarily shrinking shorter names.
+- Applied to Previous Matches, Full Report, Summary Report, bench scorers and PPTX/Keynote.
+- v3.5.4 transparent-player-photo functionality is preserved.

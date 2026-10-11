@@ -41,6 +41,18 @@ function footDisplayHtml(foot){
  return '<span class="foot-r">R</span>';
 }
 function footDisplayText(foot){return String(foot||'R').toUpperCase()==='BOTH'?'L R':String(foot||'R').toUpperCase()}
+const playerNameMeasureCanvas=document.createElement('canvas');
+const playerNameMeasureCtx=playerNameMeasureCanvas.getContext('2d');
+function playerNameFontSize(name,baseSize=15,maxWidth=81,minSize=10){
+ const text=String(name||'').trim();if(!text)return baseSize;
+ let size=baseSize;
+ while(size>minSize){
+   playerNameMeasureCtx.font=`700 ${size}px Arial, "PingFang SC", "Hiragino Sans GB", sans-serif`;
+   if(playerNameMeasureCtx.measureText(text).width<=maxWidth)break;
+   size-=1;
+ }
+ return size;
+}
 function guessedInitials(name=''){
  const words=String(name||'').trim().replace(/[^A-Za-z0-9\s-]+/g,' ').split(/[\s-]+/).filter(Boolean);
  if(!words.length)return'TEAM';if(words.length===1)return words[0].slice(0,4).toUpperCase();
@@ -123,9 +135,9 @@ function benchGoalPlayerOptions(m,selectedId=''){
 function benchGoalName(sg){const p=sg?.playerId?playerById(sg.playerId):null;return cleanName(p?.name||sg?.playerName||'');}
 function benchGoalNumber(sg){const p=sg?.playerId?playerById(sg.playerId):null;return p?.squadNumber??sg?.squadNumber??'';}
 function benchGoalEditorChipHtml(sg,index){
- const name=benchGoalName(sg),num=benchGoalNumber(sg),minute=String(sg?.goalMinute||'').replace(/'/g,'').trim();
+ const name=benchGoalName(sg),num=benchGoalNumber(sg),minute=String(sg?.goalMinute||'').replace(/'/g,'').trim(),nameSize=playerNameFontSize(name||'Select player',11,78,8);
  return `<div class="bench-goal-chip" data-subgoal-chip="${index}" style="left:${Math.max(3,Math.min(97,Number(sg?.posX??50)))}%;top:${Math.max(3,Math.min(97,Number(sg?.posY??15)))}%" title="Drag to position this bench scorer">
-   <div class="bench-mini-card"><span class="bench-num">${escapeHtml(num||'?')}</span><span class="bench-name">${escapeHtml(name||'Select player')}</span></div>
+   <div class="bench-mini-card"><span class="bench-num">${escapeHtml(num||'?')}</span><span class="bench-name" style="font-size:${nameSize}px">${escapeHtml(name||'Select player')}</span></div>
    <img class="bench-ball" src="${EVENT_META.GOAL_FOR.icon}" alt="">
    ${minute?`<span class="bench-minute">( ${escapeHtml(minute)}' )</span>`:''}
  </div>`;
@@ -134,9 +146,9 @@ function reportSubGoalHtml(sg){
  const name=benchGoalName(sg),num=benchGoalNumber(sg),minute=String(sg?.goalMinute||'').replace(/'/g,'').trim();
  if(!name&&!num)return'';
  const x=Math.max(3,Math.min(97,Number(sg?.posX??50))),y=Math.max(3,Math.min(97,Number(sg?.posY??15)));
- const small=name.length>9?' small':'';
+ const nameSize=playerNameFontSize(name,15,81,10);
  return `<div class="report-subgoal" style="left:${x}%;top:${y}%">
-   <div class="report-subgoal-card"><span class="num">${escapeHtml(num||'?')}</span><span class="name${small}">${escapeHtml(name||'—')}</span></div>
+   <div class="report-subgoal-card"><span class="num">${escapeHtml(num||'?')}</span><span class="name" style="font-size:${nameSize}px">${escapeHtml(name||'—')}</span></div>
    <img src="${EVENT_META.GOAL_FOR.icon}" alt="">
    ${minute?`<span class="minute">( ${escapeHtml(minute)}' )</span>`:''}
  </div>`;
@@ -152,7 +164,7 @@ function editorHtml(m,mode,matches=[]){
  const subGoalControls=mode==='match'?`<div class="bench-goals-panel"><div class="bench-goals-head"><div><b>Bench goal scorers</b><small>Substitute who scored after coming on</small></div><button class="btn small" data-add-subgoal>+ Add scorer</button></div>${(m.subGoals||[]).length?`<div class="bench-goal-rows">${(m.subGoals||[]).map((sg,i)=>`<div class="bench-goal-row"><select data-subgoal-player="${i}"><option value="">Choose player</option>${benchGoalPlayerOptions(m,sg.playerId).map(p=>`<option value="${p.id}" ${p.id===sg.playerId?'selected':''}>#${p.squadNumber} · ${escapeHtml(cleanName(p.name))}</option>`).join('')}</select><input class="input" data-subgoal-minute="${i}" value="${escapeHtml(String(sg.goalMinute||''))}" placeholder="Minute"><button class="btn danger small" data-remove-subgoal="${i}">Remove</button></div>`).join('')}</div>`:'<p class="muted bench-empty">No bench scorers added.</p>'}<p class="muted bench-help">On the report only the number + name cells, ball and goal minute are shown. Drag the small scorer card on the pitch to place it exactly where you want.</p></div>`:'';
  return `<div class="editor-layout"><div class="pitch-editor"><div class="pitch-stage"><img class="field-img" src="assets/field_exact_4x.jpg">${subGoalChips}${slots}</div></div><div class="panel editor-controls">${selector}${matchFields}${formation}<div class="legend">${Object.values(EVENT_META).map(e=>`<span class="legend-chip"><img src="${e.icon}">${e.label}</span>`).join('')}</div>${subGoalControls}<button class="btn primary" data-save>Save changes</button>${mode==='match'?'<button class="btn danger" data-delete>Delete match</button>':''}<p class="muted" style="font-size:11px;line-height:1.45">Tap an empty slot to assign a player. Tap an occupied player to edit goals, cards, injury, transfers or player details.</p></div></div>`
 }
-function miniPlayerHtml(pos){const p=playerById(pos.playerId);if(!p)return '<button class="empty-slot">+</button>';return `<button class="mini-player" data-occupied title="Edit ${escapeHtml(cleanName(p.name))}">${eventStacks(pos,'mini')}${p.photoAsset?`<img src="${p.photoAsset}" alt="">`:''}<div class="mini-card"><div class="r"><span class="num ${isU21(p)?'u21':''}">${p.squadNumber}</span><span class="nm">${escapeHtml(cleanName(p.name))}</span></div><div class="r"><span class="foot">${footDisplayHtml(p.foot)}</span><span class="ht">${p.height?`${p.height}cm`:'—'}</span></div></div></button>`}
+function miniPlayerHtml(pos){const p=playerById(pos.playerId);if(!p)return '<button class="empty-slot">+</button>';const nm=cleanName(p.name),nameSize=playerNameFontSize(nm,12,74,9);return `<button class="mini-player" data-occupied title="Edit ${escapeHtml(nm)}">${eventStacks(pos,'mini')}${p.photoAsset?`<img src="${p.photoAsset}" alt="">`:''}<div class="mini-card"><div class="r"><span class="num ${isU21(p)?'u21':''}">${p.squadNumber}</span><span class="nm" style="font-size:${nameSize}px">${escapeHtml(nm)}</span></div><div class="r"><span class="foot">${footDisplayHtml(p.foot)}</span><span class="ht">${p.height?`${p.height}cm`:'—'}</span></div></div></button>`}
 function eventStacks(pos,kind='mini'){
  const isGk=pos?.positionLabel==='GK';
  const left=[EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD].filter(t=>hasEvent(pos,t)).map(t=>`<img src="${EVENT_META[t].icon}" alt="">`).join('');
@@ -272,7 +284,7 @@ async function drawSnapshotPlayer(ctx,pos,slot){
  if(p.photoAsset){try{const im=await canvasImage(p.photoAsset);ctx.drawImage(im,g.left+22.438,g.top,75,75)}catch(e){console.warn(e)}}
  ctx.fillStyle='#000';ctx.fillRect(cx,cy,30.537,20);ctx.fillStyle='#fff';ctx.fillRect(cx+30.537,cy,89.338,20);ctx.fillRect(cx,cy+20,30.537,16.5);ctx.fillRect(cx+30.537,cy+20,89.338,16.5);
  ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.strokeRect(cx-1,cy-1,121.875,38.5);ctx.beginPath();ctx.moveTo(cx+30.537,cy-1);ctx.lineTo(cx+30.537,cy+37.5);ctx.moveTo(cx-1,cy+20);ctx.lineTo(cx+120.875,cy+20);ctx.stroke();
- canvasText(ctx,p.squadNumber,cx+15.2685,cy+10,15,isU21(p)?'#00cfe8':'#fff',true);const nm=cleanName(p.name);canvasText(ctx,nm,cx+75.206,cy+10,nm.length>9?11:15,'#000',true);
+ canvasText(ctx,p.squadNumber,cx+15.2685,cy+10,15,isU21(p)?'#00cfe8':'#fff',true);const nm=cleanName(p.name),nameSize=playerNameFontSize(nm,15,81,10);canvasText(ctx,nm,cx+75.206,cy+10,nameSize,'#000',true);
  const fv=String(p.foot||'R').toUpperCase();if(fv==='BOTH'){canvasText(ctx,'L',cx+11,cy+28.25,12,'#ff1900',true);canvasText(ctx,'R',cx+20,cy+28.25,12,'#000',true)}else canvasText(ctx,fv,cx+15.2685,cy+28.25,12,fv==='L'?'#ff1900':'#000',true);
  canvasText(ctx,p.height?`${p.height}cm`:'',cx+75.206,cy+28.25,12,'#000',true);
  let evY=g.top+5;for(const type of [EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD])if(hasEvent(pos,type)){await drawCanvasEventIcon(ctx,EVENT_META[type].icon,g.left-17,evY,20,20);evY+=22}
@@ -288,7 +300,7 @@ async function drawSnapshotSubGoal(ctx,sg){
  const name=benchGoalName(sg),num=benchGoalNumber(sg),minute=String(sg?.goalMinute||'').replace(/'/g,'').trim();if(!name&&!num)return;
  const cardW=119.875,cardH=20,ballW=15,gap1=4,gap2=3;const anchorX=Math.max(3,Math.min(97,Number(sg?.posX??50)))/100*540,anchorY=Math.max(3,Math.min(97,Number(sg?.posY??15)))/100*720;const left=anchorX-(cardW+gap1+ballW+gap2+42)/2,top=anchorY-cardH/2;
  ctx.fillStyle='#000';ctx.fillRect(left,top,30.537,cardH);ctx.fillStyle='#fff';ctx.fillRect(left+30.537,top,89.338,cardH);ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.strokeRect(left-1,top-1,121.875,cardH+2);ctx.beginPath();ctx.moveTo(left+30.537,top-1);ctx.lineTo(left+30.537,top+cardH+1);ctx.stroke();
- canvasText(ctx,num||'?',left+15.2685,top+10,15,'#fff',true);canvasText(ctx,name,left+75.206,top+10,name.length>9?11:15,'#000',true);const bx=left+cardW+gap1;await drawCanvasEventIcon(ctx,EVENT_META.GOAL_FOR.icon,bx,top+2.5,ballW,ballW);if(minute)canvasText(ctx,`( ${minute}' )`,bx+ballW+gap2,top+10,9,'#0433ff',true,'left');
+ canvasText(ctx,num||'?',left+15.2685,top+10,15,'#fff',true);canvasText(ctx,name,left+75.206,top+10,playerNameFontSize(name,15,81,10),'#000',true);const bx=left+cardW+gap1;await drawCanvasEventIcon(ctx,EVENT_META.GOAL_FOR.icon,bx,top+2.5,ballW,ballW);if(minute)canvasText(ctx,`( ${minute}' )`,bx+ballW+gap2,top+10,9,'#0433ff',true,'left');
 }
 async function renderLineupSnapshotPng(m){
  const key=`${activeReport()?.id||'r'}_${m?.id||'m'}_${activeReport()?.updatedAt||''}_${(m?.positions||[]).length}_${(m?.subGoals||[]).length}`;if(summaryImageCache.has(key))return summaryImageCache.get(key);
@@ -317,7 +329,7 @@ function renderFullReport(){const pages=reportPages();if(ui.reportIndex>=pages.l
 function reportPageHtml(m){const tpl=matchTemplate(m);let title='';if(m.kind==='EXPECTED')title=state.settings?.reportTitleExpected||'预计首发名单';else if(m.kind==='SUBS')title=state.settings?.reportTitleSubs||'主要替补球员';else title=`${m.roundNumber||''}_ VS ${m.opponentName||''} _ ${m.goalsFor||0}-${m.goalsAgainst||0} (${RESULT_CN[m.result]||'平'})`;
  const players=(m.positions||[]).map(pos=>{const slot=tpl[pos.positionIndex];if(!slot)return'';return reportPlayerHtml(pos,slot)}).join('');const subGoals=m.kind==='MATCH'?(m.subGoals||[]).map(reportSubGoalHtml).join(''):'';return `<div class="report-page"><img class="field-img" src="assets/field_exact_4x.jpg"><div class="report-title">${escapeHtml(title)}</div>${subGoals}${players}</div>`}
 function reportXY(slot){return{xPct:Math.max(0,Math.min(100,slot.x??50)),yPct:15.1+.885*(slot.y??50)}}
-function reportPlayerHtml(pos,slot){const p=playerById(pos.playerId);if(!p)return'';const xy=reportXY(slot);const anchorX=xy.xPct/100*540,anchorY=xy.yPct/100*720;const left=anchorX-59.9375,top=anchorY-94.369;const nm=cleanName(p.name),small=nm.length>9;const isGk=slot.label==='GK';const leftEvents=[EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD].filter(t=>hasEvent(pos,t)).map(t=>`<img src="${EVENT_META[t].icon}">`).join('');const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST);const gfRows=gf.map(e=>`<span class="report-goal for"><img src="${EVENT_META.GOAL_FOR.icon}">${minuteLabel(e)}</span>`).join('');const gaRows=ga.map(e=>`<span class="report-goal against"><img src="${EVENT_META.GOAL_AGAINST.icon}">${minuteLabel(e)}</span>`).join('');const goalHtml=isGk?`${gfRows?`<div class="report-goals gk gk-for">${gfRows}</div>`:''}${gaRows?`<div class="report-goals gk-conceded">${gaRows}</div>`:''}`:(gfRows||gaRows?`<div class="report-goals">${gfRows}${gaRows}</div>`:'');return `<div class="report-player" style="left:${left}px;top:${top}px">${leftEvents?`<div class="report-events ${isGk?'gk':''}">${leftEvents}</div>`:''}${goalHtml}${p.photoAsset?`<img class="head" src="${p.photoAsset}">`:''}<div class="report-card"><div class="fill-num"></div><div class="fill-name"></div><div class="fill-foot"></div><div class="fill-height"></div><div class="outer"></div><div class="vline"></div><div class="hline"></div><span class="txt txt-num ${isU21(p)?'u21':''}">${p.squadNumber}</span><span class="txt txt-name ${small?'small':''}">${escapeHtml(nm)}</span><span class="txt txt-foot">${footDisplayHtml(p.foot)}</span><span class="txt txt-height">${p.height?`${p.height}cm`:'—'}</span></div></div>`}
+function reportPlayerHtml(pos,slot){const p=playerById(pos.playerId);if(!p)return'';const xy=reportXY(slot);const anchorX=xy.xPct/100*540,anchorY=xy.yPct/100*720;const left=anchorX-59.9375,top=anchorY-94.369;const nm=cleanName(p.name),nameSize=playerNameFontSize(nm,15,81,10);const isGk=slot.label==='GK';const leftEvents=[EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD].filter(t=>hasEvent(pos,t)).map(t=>`<img src="${EVENT_META[t].icon}">`).join('');const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST);const gfRows=gf.map(e=>`<span class="report-goal for"><img src="${EVENT_META.GOAL_FOR.icon}">${minuteLabel(e)}</span>`).join('');const gaRows=ga.map(e=>`<span class="report-goal against"><img src="${EVENT_META.GOAL_AGAINST.icon}">${minuteLabel(e)}</span>`).join('');const goalHtml=isGk?`${gfRows?`<div class="report-goals gk gk-for">${gfRows}</div>`:''}${gaRows?`<div class="report-goals gk-conceded">${gaRows}</div>`:''}`:(gfRows||gaRows?`<div class="report-goals">${gfRows}${gaRows}</div>`:'');return `<div class="report-player" style="left:${left}px;top:${top}px">${leftEvents?`<div class="report-events ${isGk?'gk':''}">${leftEvents}</div>`:''}${goalHtml}${p.photoAsset?`<img class="head" src="${p.photoAsset}">`:''}<div class="report-card"><div class="fill-num"></div><div class="fill-name"></div><div class="fill-foot"></div><div class="fill-height"></div><div class="outer"></div><div class="vline"></div><div class="hline"></div><span class="txt txt-num ${isU21(p)?'u21':''}">${p.squadNumber}</span><span class="txt txt-name" style="font-size:${nameSize}px">${escapeHtml(nm)}</span><span class="txt txt-foot">${footDisplayHtml(p.foot)}</span><span class="txt txt-height">${p.height?`${p.height}cm`:'—'}</span></div></div>`}
 async function renderSummaryReport(){
  document.body.dataset.reportMode='SUMMARY';
  const strip=document.getElementById('reportStrip'),preview=document.getElementById('reportPreview'),pp=document.getElementById('printPages');
@@ -530,7 +542,7 @@ async function addPptxSubGoal(pptx,slide,sg){
  slide.addShape(ST.line,{x:pt(left+30.537),y:pt(top-1),w:0,h:pt(cardH+2),line:{color:'000000',width:2},objectName:`${key}__BASE_DIVIDER`});
  const base={fontFace:'Arial',bold:true,margin:0,align:'center',valign:'mid',breakLine:false,fit:'shrink'};
  slide.addText(String(num||'?'),{...base,x:pt(left),y:pt(top),w:pt(30.537),h:pt(cardH),fontSize:15,color:'FFFFFF',objectName:`${key}__BASE_NUM_TEXT`});
- slide.addText(name||'—',{...base,x:pt(left+30.537),y:pt(top),w:pt(89.338),h:pt(cardH),fontSize:name.length>9?11:15,color:'000000',objectName:`${key}__BASE_NAME_TEXT`});
+ slide.addText(name||'—',{...base,x:pt(left+30.537),y:pt(top),w:pt(89.338),h:pt(cardH),fontSize:playerNameFontSize(name,15,81,10),color:'000000',objectName:`${key}__BASE_NAME_TEXT`});
  const ball=await urlToDataUri(EVENT_META.GOAL_FOR.icon),bx=left+cardW+gap1;
  slide.addImage({data:ball,x:pt(bx),y:pt(top+2.5),w:pt(ballW),h:pt(ballW),objectName:`${key}__GOAL_0__BALL`});
  if(minute)slide.addText(`( ${minute}' )`,{x:pt(bx+ballW+gap2),y:pt(top+1),w:pt(minuteW),h:pt(17),fontFace:'Arial',fontSize:9,bold:true,color:'0433FF',margin:0,fill:transparent,line:{color:'FFFFFF',transparency:100},breakLine:false,fit:'shrink',objectName:`${key}__GOAL_0__MINUTE`});
@@ -553,7 +565,7 @@ async function addPptxPlayer(pptx,slide,p,pos,slot){
  const base={fontFace:'Arial',bold:true,margin:0,align:'center',valign:'mid',breakLine:false,fit:'shrink'};
  slide.addText(String(p.squadNumber??''),{...base,x:pt(cx),y:pt(cy),w:pt(30.537),h:pt(20),fontSize:15,color:isU21(p)?'00FDFF':'FFFFFF',objectName:`${key}__BASE_NUM_TEXT`});
  const nm=cleanName(p.name);
- slide.addText(nm,{...base,x:pt(cx+30.537),y:pt(cy),w:pt(89.338),h:pt(20),fontSize:nm.length>9?11:15,color:'000000',objectName:`${key}__BASE_NAME_TEXT`});
+ slide.addText(nm,{...base,x:pt(cx+30.537),y:pt(cy),w:pt(89.338),h:pt(20),fontSize:playerNameFontSize(nm,15,81,10),color:'000000',objectName:`${key}__BASE_NAME_TEXT`});
  const footValue=String(p.foot||'R').toUpperCase();
  const footPptx=footValue==='BOTH'?
    [{text:'L',options:{color:'FF1900',bold:true}},{text:' ',options:{color:'000000',bold:true}},{text:'R',options:{color:'000000',bold:true}}]:

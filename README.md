@@ -176,3 +176,6 @@ v3.5.1 could fail during `renderAll()` because the `renderReport()` dispatcher w
 Every player photo now passes through a white/off-white background remover. The algorithm removes only background connected to the top and upper side edges and protects the lower central portrait area, reducing the risk of removing white shirts.
 
 This applies to existing photos, Dongqiudi imports and photos uploaded manually. The transparent PNG is the image used by every report/export. For current squad players a compact original is retained so the image can be reprocessed later if necessary.
+
+## v3.5.5 — Automatic name fitting
+Player names now use width-based fitting rather than a simple character-count rule. The app starts at the normal font size and reduces it **one point at a time** only when the text is too close to the cell boundaries. The same sizing logic is used on screen, in Summary Report images, and in editable PPTX/Keynote exports.
