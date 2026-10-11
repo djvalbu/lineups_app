@@ -191,6 +191,80 @@ function closeModal(){document.getElementById('modalBackdrop').classList.add('hi
 
 const summaryImageCache=new Map();
 function canvasImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error(`Could not load image: ${src}`));im.src=src})}
+const PLAYER_PHOTO_BG_VERSION=1;
+async function playerPhotoSourceDataUri(src){
+ if(!src)return null;
+ if(String(src).startsWith('data:'))return src;
+ try{return await urlToDataUri(src)}
+ catch(firstErr){
+   try{
+     const u=new URL(src,location.href);
+     if(u.protocol==='https:'&&u.origin!==location.origin){
+       const r=await fetch(`/api/dongqiudi-photo?url=${encodeURIComponent(u.href)}`,{cache:'no-store'});
+       if(r.ok){const b=await r.blob();return await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(b)})}
+     }
+   }catch{}
+   throw firstErr;
+ }
+}
+async function preparePlayerPhotoAsset(src){
+ if(!src)return {original:null,processed:null,changed:false,backgroundDetected:false};
+ const data=await playerPhotoSourceDataUri(src);
+ const im=await canvasImage(data);
+ const scale=Math.min(1,1200/Math.max(im.naturalWidth||im.width,im.naturalHeight||im.height));
+ const w=Math.max(1,Math.round((im.naturalWidth||im.width)*scale)),h=Math.max(1,Math.round((im.naturalHeight||im.height)*scale));
+ const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(im,0,0,w,h);
+ const image=ctx.getImageData(0,0,w,h),d=image.data,n=w*h;
+ let transparentCount=0;for(let i=3;i<d.length;i+=4)if(d[i]<245)transparentCount++;
+ // Preserve a compact pre-removal original, rather than the potentially huge iPad camera file.
+ const oc=document.createElement('canvas');oc.width=w;oc.height=h;const ox=oc.getContext('2d');ox.fillStyle='#fff';ox.fillRect(0,0,w,h);ox.drawImage(im,0,0,w,h);
+ const original=oc.toDataURL('image/jpeg',0.92);
+ if(transparentCount>n*0.002)return {original,processed:c.toDataURL('image/png'),changed:false,backgroundDetected:true};
+
+ // Estimate white/off-white background from bright neutral edge samples.
+ let sr=0,sg=0,sb=0,count=0;
+ const sample=(x,y)=>{const i=(y*w+x)*4,r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),lum=(r+g+b)/3;if(lum>215&&mx-mn<38){sr+=r;sg+=g;sb+=b;count++}};
+ const step=Math.max(1,Math.floor(w/160));
+ for(let x=0;x<w;x+=step){sample(x,0);if(h>2)sample(x,2)}
+ const yMax=Math.floor(h*.52),ystep=Math.max(1,Math.floor(h/180));
+ for(let y=0;y<yMax;y+=ystep){sample(0,y);if(w>2)sample(2,y);sample(w-1,y);if(w>2)sample(w-3,y)}
+ if(count<12)return {original,processed:c.toDataURL('image/png'),changed:false,backgroundDetected:false};
+ const br=sr/count,bg=sg/count,bb=sb/count,bLum=(br+bg+bb)/3;
+ if(bLum<220)return {original,processed:c.toDataURL('image/png'),changed:false,backgroundDetected:false};
+
+ const seen=new Uint8Array(n),mask=new Uint8Array(n),queue=new Int32Array(n);let qh=0,qt=0;
+ const qualifies=(x,y)=>{
+   const p=y*w+x,i=p*4,r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),lum=(r+g+b)/3;
+   const dist=Math.hypot(r-br,g-bg,b-bb);
+   // Protect the central lower portrait area where white shirts/jerseys usually live.
+   const kitZone=y>h*.46&&x>w*.12&&x<w*.88;
+   return kitZone?(lum>241&&mx-mn<26&&dist<35):(lum>213&&mx-mn<48&&dist<82);
+ };
+ const push=(x,y)=>{if(x<0||y<0||x>=w||y>=h)return;const p=y*w+x;if(seen[p])return;seen[p]=1;if(!qualifies(x,y))return;mask[p]=1;queue[qt++]=p};
+ for(let x=0;x<w;x++){push(x,0);if(h>1)push(x,1)}
+ for(let y=0;y<Math.floor(h*.55);y++){push(0,y);if(w>1)push(1,y);push(w-1,y);if(w>1)push(w-2,y)}
+ while(qh<qt){
+   const p=queue[qh++],x=p%w,y=(p/w)|0;
+   push(x-1,y);push(x+1,y);push(x,y-1);push(x,y+1);
+ }
+ if(qt<n*.01)return {original,processed:c.toDataURL('image/png'),changed:false,backgroundDetected:false};
+
+ // Transparent background with soft edge decontamination.
+ for(let p=0;p<n;p++){
+   if(!mask[p])continue;
+   const i=p*4,r=d[i],g=d[i+1],b=d[i+2],dist=Math.hypot(r-br,g-bg,b-bb);
+   d[i+3]=dist<24?0:Math.max(0,Math.min(d[i+3],Math.round((dist-24)/45*255)));
+ }
+ // One-pixel feather for near-white halo pixels directly touching removed background.
+ for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+   const p=y*w+x;if(mask[p])continue;
+   if(!(mask[p-1]||mask[p+1]||mask[p-w]||mask[p+w]))continue;
+   const i=p*4,r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),lum=(r+g+b)/3;
+   if(lum>225&&mx-mn<45){const a=Math.max(35,Math.min(255,Math.round((255-lum)/30*255)));d[i+3]=Math.min(d[i+3],a)}
+ }
+ ctx.putImageData(image,0,0);
+ return {original,processed:c.toDataURL('image/png'),changed:true,backgroundDetected:true};
+}
 function canvasText(ctx,text,x,y,size,color='#000',bold=true,align='center'){ctx.save();ctx.fillStyle=color;ctx.font=`${bold?'700':'500'} ${size}px "PingFang SC","Hiragino Sans GB",Arial,sans-serif`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(String(text??''),x,y);ctx.restore()}
 async function drawCanvasEventIcon(ctx,src,x,y,w,h){try{const im=await canvasImage(src);ctx.drawImage(im,x,y,w,h)}catch(e){console.warn(e)}}
 async function drawSnapshotPlayer(ctx,pos,slot){
@@ -370,6 +444,7 @@ async function pptxCreateGroupedBlob(rawBlob){
 }
 function reportPlayerGeom(slot){const xy=reportXY(slot),anchorX=xy.xPct/100*540,anchorY=xy.yPct/100*720;return{left:anchorX-59.9375,top:anchorY-94.369}}
 async function exportFullPptx(){
+ if(typeof ensureActivePhotoCutouts==='function')await ensureActivePhotoCutouts();
  const btn=document.getElementById('pptxBtn'),status=document.getElementById('exportStatus');
  btn.disabled=true;status.textContent='Building editable PPTX…';
  try{
@@ -423,6 +498,7 @@ async function addSummaryHeader(pptx,slide,m,x,y,w,h){
  const color=result==='W'?'FF3B30':result==='D'?'0B2E59':'30B64A';slide.addText(`${RESULT_CN[result]} (${result})`,{x:x+ws[0]+ws[1]+ws[2],y,w:ws[3],h,fontFace:'Arial',fontSize:11,bold:true,color,align:'center',valign:'mid',margin:0,fit:'shrink'});
 }
 async function exportSummaryPptx(){
+ if(typeof ensureActivePhotoCutouts==='function')await ensureActivePhotoCutouts();
  const btn=document.getElementById('pptxBtn'),status=document.getElementById('exportStatus');btn.disabled=true;status.textContent='Building Summary Report…';
  try{
    if(typeof PptxGenJS==='undefined')throw new Error('PptxGenJS library not loaded');const matches=summaryMatches();if(!matches.length)throw new Error('No previous matches available');

@@ -171,3 +171,8 @@ Summary Report result colors:
 
 ## v3.5.2 — Startup hotfix
 v3.5.1 could fail during `renderAll()` because the `renderReport()` dispatcher was missing even though `renderFullReport()` and Summary export code existed. v3.5.2 restores that dispatcher and bumps the PWA cache. The workspace database and localStorage keys are unchanged, so this hotfix does not intentionally delete or migrate teams/reports.
+
+## v3.5.4 — Automatic transparent player photos
+Every player photo now passes through a white/off-white background remover. The algorithm removes only background connected to the top and upper side edges and protects the lower central portrait area, reducing the risk of removing white shirts.
+
+This applies to existing photos, Dongqiudi imports and photos uploaded manually. The transparent PNG is the image used by every report/export. For current squad players a compact original is retained so the image can be reprocessed later if necessary.

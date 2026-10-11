@@ -30,7 +30,7 @@ function blankMatches(){return [
   {id:uid('expected'),kind:'EXPECTED',formation:'1-4-4-2',sortOrder:10,positions:[],subGoals:[]},
   {id:uid('subs'),kind:'SUBS',formation:'SUBS-GRID',sortOrder:11,positions:[],subGoals:[]}
 ];}
-function normalizePlayers(players){return (players||[]).map(raw=>{const p={id:raw.id||uid('p'),sourceId:String(raw.sourceId||''),squadNumber:Number(raw.squadNumber??raw.number??0)||0,name:raw.name||raw.playerName||'',nameEn:raw.nameEn||raw.pinyin||raw.englishName||'',foot:String(raw.foot||'R').toUpperCase(),height:raw.height?Number(raw.height):null,isU21:!!raw.isU21,position:raw.position||'',photoAsset:raw.photoAsset||raw.photo||raw.photoUrl||null,photoRemoteUrl:raw.photoRemoteUrl||null,manuallyAdded:!!raw.manuallyAdded};const base=raw.importedValues?cloneData(raw.importedValues):{squadNumber:p.squadNumber,name:p.name,nameEn:p.nameEn,foot:p.foot,height:p.height,isU21:p.isU21,photoAsset:p.photoAsset};p.importedValues=base;p.editedFields={...(raw.editedFields||{})};for(const k of Object.keys(p.editedFields))if(valuesEqual(p[k],base[k]))delete p.editedFields[k];return p;}).sort((a,b)=>(a.squadNumber||0)-(b.squadNumber||0));}
+function normalizePlayers(players){return (players||[]).map(raw=>{const p={id:raw.id||uid('p'),sourceId:String(raw.sourceId||''),squadNumber:Number(raw.squadNumber??raw.number??0)||0,name:raw.name||raw.playerName||'',nameEn:raw.nameEn||raw.pinyin||raw.englishName||'',foot:String(raw.foot||'R').toUpperCase(),height:raw.height?Number(raw.height):null,isU21:!!raw.isU21,position:raw.position||'',photoAsset:raw.photoAsset||raw.photo||raw.photoUrl||null,photoOriginalAsset:raw.photoOriginalAsset||null,photoBgRemoved:!!raw.photoBgRemoved,photoBgVersion:Number(raw.photoBgVersion||0),photoRemoteUrl:raw.photoRemoteUrl||null,manuallyAdded:!!raw.manuallyAdded};const base=raw.importedValues?cloneData(raw.importedValues):{squadNumber:p.squadNumber,name:p.name,nameEn:p.nameEn,foot:p.foot,height:p.height,isU21:p.isU21,photoAsset:p.photoAsset};p.importedValues=base;p.editedFields={...(raw.editedFields||{})};for(const k of Object.keys(p.editedFields))if(valuesEqual(p[k],base[k]))delete p.editedFields[k];return p;}).sort((a,b)=>(a.squadNumber||0)-(b.squadNumber||0));}
 function normalizeMatches(matches){const out=cloneData(matches||[]);out.forEach(m=>{m.id=m.id||uid(m.kind?.toLowerCase()||'match');m.positions=m.positions||[];m.subGoals=m.subGoals||[];if(m.kind==='MATCH'&&m.isHome==null)m.isHome=true;m.positions.forEach(p=>{p.events=p.events||[];});});if(!out.some(m=>m.kind==='EXPECTED'))out.push({id:uid('expected'),kind:'EXPECTED',formation:'1-4-4-2',sortOrder:10,positions:[]});if(!out.some(m=>m.kind==='SUBS'))out.push({id:uid('subs'),kind:'SUBS',formation:'SUBS-GRID',sortOrder:11,positions:[]});return out;}
 function latestRoundName(matches){const ms=(matches||[]).filter(m=>m.kind==='MATCH'&&(m.roundNumber||m.opponentName));const last=ms.at(-1);return last?.roundNumber?`Report ${last.roundNumber}`:(last?.opponentName?`Report vs ${last.opponentName}`:'Imported report');}
 function legacyToWorkspace(legacy){const t0=legacy?.team||{};const teamId=t0.id||uid('team');const players=normalizePlayers(legacy?.players||[]);const matches=normalizeMatches(legacy?.matches||[]);const report={id:legacy?.analysis?.id||uid('report'),name:latestRoundName(matches),status:'draft',createdAt:legacy?.analysis?.createdAt||nowIso(),updatedAt:legacy?.analysis?.updatedAt||nowIso(),playersSnapshot:cloneData(players),matches,settings:{...defaultSettings(),...(legacy?.settings||{})},analysis:cloneData(legacy?.analysis||{id:uid('analysis'),teamId})};const team={id:teamId,sourceId:t0.sourceId||'',name:t0.name||'New Team',nameEn:t0.nameEn||t0.name||'New Team',reportInitials:t0.reportInitials||guessTeamReportInitials(t0.nameEn||t0.name||'New Team'),logoUrl:t0.logoUrl||'',logoAsset:t0.logoAsset||null,createdAt:t0.createdAt||nowIso(),updatedAt:t0.updatedAt||nowIso(),archived:false,masterPlayers:cloneData(players),reports:[report]};return {schemaVersion:3,createdAt:nowIso(),updatedAt:nowIso(),activeTeamId:team.id,activeReportId:report.id,teams:[team]};}
@@ -38,7 +38,8 @@ function normalizeReport(r,team){r.id=r.id||uid('report');r.name=r.name||'Report
 function normalizeTeam(t){t.id=t.id||uid('team');t.name=t.name||'New Team';t.nameEn=t.nameEn||t.name;t.reportInitials=t.reportInitials||guessTeamReportInitials(t.nameEn||t.name);t.sourceId=t.sourceId||'';t.logoUrl=t.logoUrl||'';t.createdAt=t.createdAt||nowIso();t.updatedAt=t.updatedAt||t.createdAt;t.archived=!!t.archived;t.masterPlayers=normalizePlayers(t.masterPlayers||t.players||[]);t.reports=(t.reports||[]).map(r=>normalizeReport(r,t));if(!t.reports.length)t.reports.push(newBlankReport(t,'Report 1'));return t;}
 function normalizeWorkspace(w){if(!w?.teams)return legacyToWorkspace(w);w.schemaVersion=3;w.createdAt=w.createdAt||nowIso();w.updatedAt=w.updatedAt||nowIso();w.teams=(w.teams||[]).map(normalizeTeam);if(!w.teams.length){const t=createEmptyTeamObject('New Team','New Team');w.teams.push(t);}if(!w.teams.some(t=>t.id===w.activeTeamId))w.activeTeamId=w.teams[0].id;const t=w.teams.find(x=>x.id===w.activeTeamId);if(!t.reports.some(r=>r.id===w.activeReportId))w.activeReportId=t.reports[0].id;return w;}
 function createEmptyTeamObject(name,nameEn){const t={id:uid('team'),sourceId:'',name:name||'New Team',nameEn:nameEn||name||'New Team',reportInitials:guessTeamReportInitials(nameEn||name||'New Team'),logoUrl:'',logoAsset:null,createdAt:nowIso(),updatedAt:nowIso(),archived:false,masterPlayers:[],reports:[]};t.reports.push(newBlankReport(t,'Report 1'));return t;}
-function newBlankReport(team,name){return {id:uid('report'),name:name||`Report ${(team.reports?.length||0)+1}`,status:'draft',createdAt:nowIso(),updatedAt:nowIso(),playersSnapshot:cloneData(team.masterPlayers||[]),matches:blankMatches(),settings:defaultSettings(),analysis:{id:uid('analysis'),teamId:team.id}};}
+function snapshotPlayersForReport(players){return cloneData(players||[]).map(p=>{delete p.photoOriginalAsset;return p;});}
+function newBlankReport(team,name){return {id:uid('report'),name:name||`Report ${(team.reports?.length||0)+1}`,status:'draft',createdAt:nowIso(),updatedAt:nowIso(),playersSnapshot:snapshotPlayersForReport(team.masterPlayers||[]),matches:blankMatches(),settings:defaultSettings(),analysis:{id:uid('analysis'),teamId:team.id}};}
 function activeTeam(){return workspace?.teams?.find(t=>t.id===workspace.activeTeamId)||workspace?.teams?.[0]||null;}
 function activeReport(){const t=activeTeam();return t?.reports?.find(r=>r.id===workspace.activeReportId)||t?.reports?.[0]||null;}
 function bindActiveState(){const t=activeTeam();if(!t)return;let r=activeReport();if(!r){r=newBlankReport(t,'Report 1');t.reports.push(r);workspace.activeReportId=r.id;}state={schemaVersion:3,team:t,players:r.playersSnapshot,matches:r.matches,settings:r.settings,analysis:r.analysis};normalizeState();r.playersSnapshot=state.players;r.matches=state.matches;r.settings=state.settings;r.analysis=state.analysis;ui.matchId=state.matches.find(m=>m.kind==='MATCH')?.id||null;ui.reportIndex=0;refreshContextSelectors();}
@@ -52,7 +53,7 @@ async function loadPersistedWorkspace(){let a=null,b=null;try{a=JSON.parse(local
 function persistWorkspace(){workspace.updatedAt=nowIso();try{localStorage.setItem(WORKSPACE_KEY,JSON.stringify(workspace));}catch(e){console.warn('LocalStorage quota exceeded; IndexedDB remains primary',e);}idbPutWorkspace(cloneData(workspace));const el=document.getElementById('contextLine');if(el)el.dataset.saved=Date.now();}
 function saveState(){const r=activeReport(),t=activeTeam();if(!r||!t)return;r.playersSnapshot=state.players;r.matches=state.matches;r.settings=state.settings;r.analysis=state.analysis;r.updatedAt=nowIso();t.updatedAt=nowIso();persistWorkspace();refreshContextSelectors(false);}
 
-async function init(){try{let loaded=await loadPersistedWorkspace();if(!loaded){for(const k of LEGACY_STATE_KEYS){try{const raw=localStorage.getItem(k);if(raw){loaded=JSON.parse(raw);break;}}catch{}}}if(!loaded)loaded=await loadSeed();workspace=normalizeWorkspace(loaded?.teams?loaded:legacyToWorkspace(loaded));bindActiveState();bindGlobal();renderAll();refreshContextSelectors();if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(err){console.error(err);document.body.innerHTML=`<div style="padding:30px;color:white;font-family:system-ui"><h2>App initialization failed</h2><p>${escapeHtml(err.message)}</p></div>`;}}
+async function init(){try{let loaded=await loadPersistedWorkspace();if(!loaded){for(const k of LEGACY_STATE_KEYS){try{const raw=localStorage.getItem(k);if(raw){loaded=JSON.parse(raw);break;}}catch{}}}if(!loaded)loaded=await loadSeed();workspace=normalizeWorkspace(loaded?.teams?loaded:legacyToWorkspace(loaded));bindActiveState();bindGlobal();renderAll();refreshContextSelectors();setTimeout(()=>migrateWorkspacePlayerPhotos().catch(e=>console.warn('Photo cleanup migration failed',e)),350);if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(err){console.error(err);document.body.innerHTML=`<div style="padding:30px;color:white;font-family:system-ui"><h2>App initialization failed</h2><p>${escapeHtml(err.message)}</p></div>`;}}
 
 function refreshContextSelectors(renderLabels=true){const ts=document.getElementById('teamSelect'),rs=document.getElementById('reportSelect');const t=activeTeam(),r=activeReport();if(ts){ts.innerHTML=workspace.teams.slice().sort((a,b)=>Number(a.archived)-Number(b.archived)||String(a.nameEn).localeCompare(String(b.nameEn))).map(x=>`<option value="${x.id}" ${x.id===workspace.activeTeamId?'selected':''}>${x.archived?'[Archived] ':''}${escapeHtml(x.nameEn||x.name)}</option>`).join('');}if(rs&&t){rs.innerHTML=t.reports.slice().sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))).map(x=>`<option value="${x.id}" ${x.id===workspace.activeReportId?'selected':''}>${x.status==='archived'?'[Archived] ':''}${escapeHtml(x.name)}</option>`).join('');}const status=document.getElementById('reportStatus');if(status&&r){status.textContent=r.status==='archived'?'Archived':'Draft';status.className=`context-status ${r.status}`;}const line=document.getElementById('contextLine');if(line&&t&&r)line.textContent=`${t.nameEn||t.name} · ${r.name} · autosaved locally`;if(renderLabels){const tn=document.getElementById('teamName');if(tn)tn.textContent=t?.nameEn||t?.name||'';}}
 function switchTeam(teamId){const t=workspace.teams.find(x=>x.id===teamId);if(!t)return;workspace.activeTeamId=t.id;workspace.activeReportId=t.reports.slice().sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))[0]?.id||t.reports[0]?.id;bindActiveState();persistWorkspace();renderAll();showView(ui.view==='teams'?'teams':'dashboard');toast(`Loaded ${t.nameEn||t.name}`);}
@@ -80,6 +81,55 @@ async function mapLimitClient(items,limit,fn){
  async function worker(){while(true){const i=next++;if(i>=items.length)return;try{out[i]=await fn(items[i],i);}catch(e){out[i]=null;}}}
  await Promise.all(Array.from({length:Math.min(limit,items.length)},()=>worker()));return out;
 }
+let photoMigrationPromise=null;
+async function processPlayerPhotoRecord(p,keepOriginal=false,cache=null){
+ if(!p?.photoAsset)return false;
+ if(p.photoBgVersion>=PLAYER_PHOTO_BG_VERSION&&p.photoBgRemoved)return false;
+ const source=p.photoOriginalAsset||p.photoAsset;
+ let prepared=cache?.get(source);
+ if(!prepared){prepared=await preparePlayerPhotoAsset(source);if(cache)cache.set(source,prepared)}
+ if(!prepared?.processed)return false;
+ if(keepOriginal&&!p.photoOriginalAsset)p.photoOriginalAsset=prepared.original||source;
+ p.photoAsset=prepared.processed;p.photoBgRemoved=true;p.photoBgVersion=PLAYER_PHOTO_BG_VERSION;
+ return true;
+}
+async function processTeamPhotoCutouts(team){
+ if(!team)return 0;const cache=new Map();let changed=0;
+ for(const p of (team.masterPlayers||[])){try{if(await processPlayerPhotoRecord(p,true,cache))changed++}catch(e){console.warn('Player photo cleanup failed',p?.name,e)}}
+ for(const r of (team.reports||[]))for(const p of (r.playersSnapshot||[])){try{if(await processPlayerPhotoRecord(p,false,cache))changed++}catch(e){console.warn('Report photo cleanup failed',p?.name,e)}}
+ return changed;
+}
+async function ensureActivePhotoCutouts(){
+ const t=activeTeam();if(!t)return 0;
+ const n=await processTeamPhotoCutouts(t);
+ if(n){bindActiveState();persistWorkspace();renderAll()}
+ return n;
+}
+async function migrateWorkspacePlayerPhotos(){
+ if(photoMigrationPromise)return photoMigrationPromise;
+ if(workspace?.playerPhotoBgVersion>=PLAYER_PHOTO_BG_VERSION)return 0;
+ photoMigrationPromise=(async()=>{
+   let total=0;const active=activeTeam(),ordered=[active,...workspace.teams.filter(t=>t!==active)].filter(Boolean);
+   if(ordered.length&&ordered[0]?.masterPlayers?.some(p=>p.photoAsset&&!p.photoBgRemoved))toast('Removing white backgrounds from player photos…');
+   for(const t of ordered)total+=await processTeamPhotoCutouts(t);
+   workspace.playerPhotoBgVersion=PLAYER_PHOTO_BG_VERSION;
+   if(total){bindActiveState();persistWorkspace();renderAll();toast(`Player photos cleaned · ${total} images updated`)}else persistWorkspace();
+   return total;
+ })().finally(()=>{photoMigrationPromise=null});
+ return photoMigrationPromise;
+}
+async function prepareIncomingPlayersPhotos(players){
+ const cache=new Map();
+ for(const p of (players||[])){
+   if(!p?.photoAsset)continue;
+   try{
+     const source=p.photoOriginalAsset||p.photoAsset;let prepared=cache.get(source);
+     if(!prepared){prepared=await preparePlayerPhotoAsset(source);cache.set(source,prepared)}
+     p.photoOriginalAsset=p.photoOriginalAsset||prepared.original||source;p.photoAsset=prepared.processed||p.photoAsset;p.photoBgRemoved=true;p.photoBgVersion=PLAYER_PHOTO_BG_VERSION;
+   }catch(e){console.warn('Imported photo cleanup failed',p?.name,e)}
+ }
+ return players;
+}
 function mergeDongqiudiSquad(existingPlayers,incomingPlayers){
  const existing=normalizePlayers(existingPlayers||[]),used=new Set(),out=[];
  for(const raw of incomingPlayers){
@@ -101,6 +151,7 @@ function mergeDongqiudiSquad(existingPlayers,incomingPlayers){
      if(!fieldEdited(old,key)&&hasFresh)merged[key]=cloneData(fresh);
      if(valuesEqual(merged[key],merged.importedValues[key]))delete merged.editedFields[key];
    }
+   if(!fieldEdited(old,'photoAsset')&&incoming.photoAsset){merged.photoOriginalAsset=incoming.photoOriginalAsset||null;merged.photoBgRemoved=!!incoming.photoBgRemoved;merged.photoBgVersion=Number(incoming.photoBgVersion||0);}
    out.push(merged);
  }
  for(const p of existing)if(!used.has(p.id)&&!out.some(x=>x.id===p.id)){
@@ -138,9 +189,9 @@ async function openDongqiudiImportModal(existingTeamId=null){
      if(!r.ok)throw new Error(data.error||`Import failed (${r.status})`);
      let rawPlayers=data.players||[];
      if(document.getElementById('dqdPhotos')?.checked){
-       progress.textContent=`Squad received (${rawPlayers.length}). Downloading player photos…`;
-       const photos=await mapLimitClient(rawPlayers,4,(p)=>fetchDongqiudiAsset(p.photoRemoteUrl));
-       rawPlayers=rawPlayers.map((p,i)=>({...p,photoAsset:photos[i]||null}));
+       progress.textContent=`Squad received (${rawPlayers.length}). Downloading and cleaning player photos…`;
+       const photos=await mapLimitClient(rawPlayers,3,async p=>{const original=await fetchDongqiudiAsset(p.photoRemoteUrl);if(!original)return null;const cut=await preparePlayerPhotoAsset(original);return {photoAsset:cut.processed||original,photoOriginalAsset:cut.original||original,photoBgRemoved:true,photoBgVersion:PLAYER_PHOTO_BG_VERSION};});
+       rawPlayers=rawPlayers.map((p,i)=>({...p,...(photos[i]||{photoAsset:null})}));
      }
      let logoAsset=null;
      if(data.team?.logoUrl&&document.getElementById('dqdPhotos')?.checked){
@@ -151,7 +202,7 @@ async function openDongqiudiImportModal(existingTeamId=null){
      const isNew=!team;
      if(isNew){
        team=createEmptyTeamObject(data.team?.name||data.team?.nameEn||'Dongqiudi Team',data.team?.nameEn||data.team?.name||'Dongqiudi Team');
-       team.sourceId=sourceId;team.logoUrl=data.team?.logoUrl||'';team.logoAsset=logoAsset;team.masterPlayers=imported;team.reports[0].playersSnapshot=cloneData(imported);
+       team.sourceId=sourceId;team.logoUrl=data.team?.logoUrl||'';team.logoAsset=logoAsset;team.masterPlayers=imported;team.reports[0].playersSnapshot=snapshotPlayersForReport(imported);
        workspace.teams.push(team);
      }else{
        team.name=data.team?.name||team.name;team.nameEn=data.team?.nameEn||team.nameEn;team.sourceId=sourceId;team.logoUrl=data.team?.logoUrl||team.logoUrl;if(logoAsset)team.logoAsset=logoAsset;
@@ -180,7 +231,7 @@ function deleteTeam(id){const t=workspace.teams.find(x=>x.id===id);if(!t)return;
 function exportTeam(id){const t=workspace.teams.find(x=>x.id===id);if(!t)return;downloadBlob(new Blob([JSON.stringify({type:'opponent-lineup-team',schemaVersion:3,exportedAt:nowIso(),team:t},null,2)],{type:'application/json'}),`${safeFilePart(t.nameEn||t.name)}_Team_Backup.json`);}
 async function importTeamFile(e){const f=e.target.files?.[0];if(!f)return;try{const obj=JSON.parse(await f.text());let teams=[];if(obj.type==='opponent-lineup-team'&&obj.team)teams=[obj.team];else if(obj.teams)teams=obj.teams;else if(obj.team&&obj.players&&obj.matches)teams=legacyToWorkspace(obj).teams;else if(obj.id&&obj.reports)teams=[obj];else throw new Error('Unsupported team file');for(const raw of teams){const t=normalizeTeam(cloneData(raw));t.id=uid('team');t.createdAt=nowIso();t.updatedAt=nowIso();t.reports.forEach(r=>{r.id=uid('report');r.analysis={...(r.analysis||{}),id:uid('analysis'),teamId:t.id};});workspace.teams.push(t);}persistWorkspace();renderAll();toast(`${teams.length} team${teams.length===1?'':'s'} imported`);}catch(err){console.error(err);toast('Invalid team backup');}e.target.value='';}
 function parseCsvLine(line){const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(q&&line[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(ch===','&&!q){out.push(cur);cur='';}else cur+=ch;}out.push(cur);return out;}
-async function importSquadFile(e){const f=e.target.files?.[0],team=workspace.teams.find(t=>t.id===pendingSquadTeamId);if(!f||!team){e.target.value='';return;}try{let players=[];if(f.name.toLowerCase().endsWith('.json')){const o=JSON.parse(await f.text());players=normalizePlayers(Array.isArray(o)?o:(o.players||o.masterPlayers||[]));}else{const lines=(await f.text()).split(/\r?\n/).filter(x=>x.trim());const headers=parseCsvLine(lines.shift()||'').map(x=>x.trim());players=normalizePlayers(lines.map(line=>{const vals=parseCsvLine(line);return Object.fromEntries(headers.map((h,i)=>[h,vals[i]??'']));}));}if(!players.length)throw new Error('No players');team.masterPlayers=players;team.updatedAt=nowIso();if(team.id===activeTeam()?.id&&confirm(`Imported ${players.length} players. Apply this squad to the current report too?`)){const r=activeReport();r.playersSnapshot=cloneData(players);bindActiveState();}persistWorkspace();renderAll();toast(`${players.length} players imported`);}catch(err){console.error(err);toast('Squad import failed');}pendingSquadTeamId=null;e.target.value='';}
+async function importSquadFile(e){const f=e.target.files?.[0],team=workspace.teams.find(t=>t.id===pendingSquadTeamId);if(!f||!team){e.target.value='';return;}try{let players=[];if(f.name.toLowerCase().endsWith('.json')){const o=JSON.parse(await f.text());players=normalizePlayers(Array.isArray(o)?o:(o.players||o.masterPlayers||[]));}else{const lines=(await f.text()).split(/\r?\n/).filter(x=>x.trim());const headers=parseCsvLine(lines.shift()||'').map(x=>x.trim());players=normalizePlayers(lines.map(line=>{const vals=parseCsvLine(line);return Object.fromEntries(headers.map((h,i)=>[h,vals[i]??'']));}));}if(!players.length)throw new Error('No players');await prepareIncomingPlayersPhotos(players);team.masterPlayers=players;team.updatedAt=nowIso();if(team.id===activeTeam()?.id&&confirm(`Imported ${players.length} players. Apply this squad to the current report too?`)){const r=activeReport();r.playersSnapshot=cloneData(players);bindActiveState();}persistWorkspace();renderAll();toast(`${players.length} players imported`);}catch(err){console.error(err);toast('Squad import failed');}pendingSquadTeamId=null;e.target.value='';}
 
 function reportCard(r){const matchCount=r.matches.filter(m=>m.kind==='MATCH'&&(m.positions?.length||m.roundNumber||m.opponentName)).length;const exp=r.matches.find(m=>m.kind==='EXPECTED');return `<article class="archive-row ${r.id===workspace.activeReportId?'current':''} ${r.status}"><div class="archive-main"><div><div class="archive-title"><h3>${escapeHtml(r.name)}</h3><span class="archive-badge ${r.status==='archived'?'on':''}">${r.status==='archived'?'Archived':'Draft'}</span>${r.id===workspace.activeReportId?'<span class="current-badge">Open</span>':''}</div><p>${matchCount} previous matches · Expected XI ${exp?.positions?.length||0}/11 · ${r.playersSnapshot.length} player snapshot</p></div><div class="archive-dates"><span>Created ${fmtDate(r.createdAt)}</span><span>Updated ${fmtDateTime(r.updatedAt)}</span></div></div><div class="archive-actions" data-report-id="${r.id}"><button class="btn small primary" data-report-action="open">Open</button><button class="btn small" data-report-action="duplicate">Duplicate</button><button class="btn small ghost" data-report-action="rename">Rename</button><button class="btn small ghost" data-report-action="archive">${r.status==='archived'?'Restore':'Archive'}</button><button class="btn small ghost" data-report-action="export">Export JSON</button><button class="btn small danger" data-report-action="delete">Delete</button></div></article>`;}
 function renderReports(){const t=activeTeam(),list=document.getElementById('reportArchiveList'),summary=document.getElementById('reportArchiveSummary');if(!t||!list)return;const archived=t.reports.filter(r=>r.status==='archived').length;if(summary)summary.innerHTML=`<b>${escapeHtml(t.nameEn||t.name)}</b><span>${t.reports.length} reports · ${archived} archived · each report has an independent lineup + player snapshot</span>`;list.innerHTML=t.reports.slice().sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))).map(reportCard).join('');list.querySelectorAll('[data-report-id]').forEach(row=>row.onclick=e=>{const b=e.target.closest('[data-report-action]');if(!b)return;const id=row.dataset.reportId,a=b.dataset.reportAction;if(a==='open')switchReport(id);if(a==='duplicate')duplicateReport(id);if(a==='rename')renameReport(id);if(a==='archive')toggleReportArchive(id);if(a==='export')exportReportJson(id);if(a==='delete')deleteReport(id);});}
@@ -205,7 +256,7 @@ addMatch=function(){if(!guardEditable())return;return _baseAddMatch();};
 
 openPlayerModal=function(id){
  if(!guardEditable())return;
- const p=id?playerById(id):{id:uid('p'),squadNumber:'',name:'',nameEn:'',foot:'R',height:'',isU21:false,photoAsset:null,importedValues:null,editedFields:{},manuallyAdded:true};
+ const p=id?playerById(id):{id:uid('p'),squadNumber:'',name:'',nameEn:'',foot:'R',height:'',isU21:false,photoAsset:null,photoOriginalAsset:null,photoBgRemoved:false,photoBgVersion:0,importedValues:null,editedFields:{},manuallyAdded:true};
  const isNew=!id;
  p.editedFields=p.editedFields||{};
  if(!isNew&&!p.importedValues)p.importedValues={squadNumber:p.squadNumber,name:p.name,nameEn:p.nameEn,foot:p.foot,height:p.height,isU21:p.isU21,photoAsset:p.photoAsset};
@@ -224,7 +275,7 @@ openPlayerModal=function(id){
    <div><label>${fieldLabelHtml(p,'height','Height (cm)')}</label><input class="input" id="pHeight" type="number" value="${p.height??''}"></div>
    <div><label>${fieldLabelHtml(p,'isU21','U21')}</label><select id="pU21"><option value="false" ${!isU21(p)?'selected':''}>No</option><option value="true" ${isU21(p)?'selected':''}>Yes</option></select></div>
  </div>
- <div style="margin-top:8px"><label>${fieldLabelHtml(p,'photoAsset','Player photo')}</label><input class="input" id="pPhoto" type="file" accept="image/*">${p.photoAsset?'<small class="current-photo-note">Current photo kept unless you select a new one.</small>':''}</div>
+ <div style="margin-top:8px"><label>${fieldLabelHtml(p,'photoAsset','Player photo')}</label><input class="input" id="pPhoto" type="file" accept="image/*"><small class="current-photo-note">${p.photoAsset?'Current transparent photo kept unless you select a new one.':'White/off-white background is removed automatically.'}</small>${p.photoOriginalAsset?'<small class="photo-original-note">Original photo retained for reprocessing.</small>':''}</div>
  <div class="modal-actions">${!isNew?'<button class="btn danger" id="deletePlayer">Delete</button>':''}<button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="savePlayer">Save</button></div>`;
  openModal();
  document.getElementById('cancelModal').onclick=closeModal;
@@ -238,7 +289,7 @@ openPlayerModal=function(id){
    if(key==='nameEn')document.getElementById('pNameEn').value=val??'';
    if(key==='height')document.getElementById('pHeight').value=val??'';
    if(key==='isU21')document.getElementById('pU21').value=String(!!val);
-   if(key==='photoAsset'){modal.dataset.resetPhoto='true';const note=modal.querySelector('.current-photo-note');if(note)note.textContent='Imported photo will be restored when you press Save.';}
+   if(key==='photoAsset'){modal.dataset.resetPhoto='true';p.photoBgRemoved=false;p.photoBgVersion=0;const note=modal.querySelector('.current-photo-note');if(note)note.textContent='Imported photo will be restored when you press Save.';}
    toast('Imported value restored · press Save');
  });
 
@@ -262,13 +313,18 @@ openPlayerModal=function(id){
    };
    const photo=document.getElementById('pPhoto').files?.[0];
    let nextPhoto=modal.dataset.resetPhoto==='true'?importedValue(p,'photoAsset'):p.photoAsset;
-   if(photo)nextPhoto=await fileToDataUri(photo);
+   let nextOriginal=p.photoOriginalAsset||null,nextBgRemoved=!!p.photoBgRemoved,nextBgVersion=Number(p.photoBgVersion||0);
+   if(photo){
+     const saveBtn=document.getElementById('savePlayer');saveBtn.disabled=true;saveBtn.textContent='Removing background…';
+     const raw=await fileToDataUri(photo),cut=await preparePlayerPhotoAsset(raw);
+     nextPhoto=cut.processed||raw;nextOriginal=cut.original||raw;nextBgRemoved=true;nextBgVersion=PLAYER_PHOTO_BG_VERSION;
+   }
 
    if(isNew){
-     Object.assign(p,next,{photoAsset:nextPhoto,manuallyAdded:true,importedValues:null,editedFields:{}});
+     Object.assign(p,next,{photoAsset:nextPhoto,photoOriginalAsset:nextOriginal,photoBgRemoved:nextBgRemoved,photoBgVersion:nextBgVersion,manuallyAdded:true,importedValues:null,editedFields:{}});
      state.players.push(p);
    }else{
-     Object.assign(p,next,{photoAsset:nextPhoto});
+     Object.assign(p,next,{photoAsset:nextPhoto,photoOriginalAsset:nextOriginal,photoBgRemoved:nextBgRemoved,photoBgVersion:nextBgVersion});
      ['squadNumber','name','nameEn','foot','height','isU21'].forEach(k=>setManualEditFlag(p,k,p[k]));
      setManualEditFlag(p,'photoAsset',p.photoAsset);
    }
@@ -283,7 +339,7 @@ openPlayerModal=function(id){
  };
 };
 function downloadBackup(){downloadBlob(new Blob([JSON.stringify({type:'opponent-lineup-workspace',schemaVersion:3,exportedAt:nowIso(),...workspace},null,2)],{type:'application/json'}),`Opponent_Lineup_All_Data_${new Date().toISOString().slice(0,10)}.json`);}
-async function importBackup(e){const f=e.target.files?.[0];if(!f)return;try{const obj=JSON.parse(await f.text());let w;if(obj.teams)w=obj;else if(obj.team&&obj.players&&obj.matches)w=legacyToWorkspace(obj);else throw new Error('Invalid workspace');if(!confirm('Replace all local teams and reports with this backup?')){e.target.value='';return;}workspace=normalizeWorkspace(w);bindActiveState();persistWorkspace();renderAll();showView('dashboard');toast('All data imported');}catch(err){console.error(err);toast('Invalid workspace backup');}e.target.value='';}
+async function importBackup(e){const f=e.target.files?.[0];if(!f)return;try{const obj=JSON.parse(await f.text());let w;if(obj.teams)w=obj;else if(obj.team&&obj.players&&obj.matches)w=legacyToWorkspace(obj);else throw new Error('Invalid workspace');if(!confirm('Replace all local teams and reports with this backup?')){e.target.value='';return;}workspace=normalizeWorkspace(w);workspace.playerPhotoBgVersion=0;bindActiveState();persistWorkspace();renderAll();showView('dashboard');toast('All data imported');setTimeout(()=>migrateWorkspacePlayerPhotos().catch(console.warn),250);}catch(err){console.error(err);toast('Invalid workspace backup');}e.target.value='';}
 function importScoutingCsv(e){const f=e.target.files?.[0];if(!f)return;f.text().then(text=>{const lines=text.trim().split(/\r?\n/);const head=(lines.shift()||'').split(',').map(x=>x.trim());const rows=lines.map(line=>{const vals=line.split(',');return Object.fromEntries(head.map((h,i)=>[h,(vals[i]||'').trim()]));});const t=activeTeam();t.scouting={headers:head,rows,importedAt:nowIso()};persistWorkspace();renderScouting();toast(`${rows.length} scouting rows imported for ${t.nameEn||t.name}`);}).catch(()=>toast('CSV import error'));e.target.value='';}
 function renderScouting(){const d=activeTeam()?.scouting;const el=document.getElementById('scoutingStatus');if(el)el.textContent=d?`${d.rows.length} rows imported · ${d.headers.length} fields · ${fmtDateTime(d.importedAt)} · ${activeTeam().nameEn||activeTeam().name}`:'No scouting dataset imported for this team.';}
 

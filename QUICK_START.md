@@ -49,3 +49,6 @@ The app creates the team and stores its squad. Later, use **Refresh Dongqiudi** 
 
 ## Editing exported players in Keynote
 Export **PPTX / Keynote** and open the file in Keynote. A single click on a lineup player selects the whole player group. You can move it without separating the head, cells or event icons. If the player has goals, the ball + minute remain a nested group after the first Ungroup operation.
+
+## Player photos
+When you upload a player photo in **Squad**, just choose the image normally. White/off-white background removal happens automatically when you press **Save**. Dongqiudi imports are processed automatically too. Existing stored photos are cleaned once after this version is first opened.

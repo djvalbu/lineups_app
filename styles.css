@@ -302,3 +302,7 @@ label{color:#9cb7ca}
 .report-goals.gk-conceded{left:97px!important;right:auto!important;top:0!important;gap:0!important;align-items:flex-start!important}
 .report-goals.gk-conceded .report-goal{height:14px;line-height:14px}
 .report-goals.gk-conceded .report-goal img{width:14px!important;height:14px!important}
+
+/* v3.5.4 — transparent player photos */
+.photo-original-note{display:block;margin-top:3px;color:#6f8798;font-size:9px}
+.player-tile .photo-wrap img,.mini-player>img,.picker-item>img,.report-player>.head{background:transparent!important}

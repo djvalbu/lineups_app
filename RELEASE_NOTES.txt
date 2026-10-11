@@ -141,3 +141,14 @@ v3.5.2 HOTFIX
 - Restored Summary Report preview rendering.
 - PWA cache version bumped so iPad/Safari refreshes the repaired JavaScript.
 - No workspace storage keys or IndexedDB names changed.
+
+v3.5.4 — Transparent Player Photos
+- Built directly from v3.5.2 (the discarded v3.5.3 Recovery build is NOT used).
+- Automatic removal of white/off-white player-photo backgrounds.
+- Existing stored player photos are migrated automatically in the background.
+- Dongqiudi photos are cleaned immediately during team/squad import.
+- Manually uploaded replacement photos are cleaned before Save completes.
+- Processed photos are stored as transparent PNG and used in Squad, Matches, Expected XI, Main Subs, Full Report, Summary Report, PDF and PPTX/Keynote.
+- A compact pre-removal original is retained for current squad players for future reprocessing.
+- Historical report snapshots receive the transparent image without duplicating the retained original.
+- Export waits for the active report's photo cleanup to complete before generating PPTX.
