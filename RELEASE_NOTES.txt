@@ -127,3 +127,10 @@ v3.5
 - Full filename: 2026_Lineup Prediction_MD{next}_{INITIALS}.pptx
 - Summary filename: 2026_MD{next}_{INITIALS}.pptx
 - Added editable Report Initials in Team settings.
+
+v3.5.1
+- Goalkeeper Goal Against markers now start at the upper-right corner of the goalkeeper photo and stack downward.
+- Compact 14 px vertical step keeps multiple conceded goals above the player-name card.
+- Applied consistently to Previous Matches, Full Report preview, Summary Report lineup images, and editable PPTX/Keynote.
+- Summary Report result colors fixed to the requested convention:
+  W = red, D = navy blue, L = green.

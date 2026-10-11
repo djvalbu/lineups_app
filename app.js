@@ -157,8 +157,11 @@ function eventStacks(pos,kind='mini'){
  const isGk=pos?.positionLabel==='GK';
  const left=[EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD].filter(t=>hasEvent(pos,t)).map(t=>`<img src="${EVENT_META[t].icon}" alt="">`).join('');
  const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST);
- const goalRows=[...gf.map(e=>`<span class="goal-line for"><img src="${EVENT_META.GOAL_FOR.icon}">${minuteLabel(e)}</span>`),...ga.map(e=>`<span class="goal-line against"><img src="${EVENT_META.GOAL_AGAINST.icon}">${minuteLabel(e)}</span>`)].join('');
- return `${left?`<div class="event-stack ${isGk?'gk':''}">${left}</div>`:''}${goalRows?`<div class="goal-stack ${isGk?'gk':''}">${goalRows}</div>`:''}`
+ const gfRows=gf.map(e=>`<span class="goal-line for"><img src="${EVENT_META.GOAL_FOR.icon}">${minuteLabel(e)}</span>`).join('');
+ const gaRows=ga.map(e=>`<span class="goal-line against"><img src="${EVENT_META.GOAL_AGAINST.icon}">${minuteLabel(e)}</span>`).join('');
+ if(isGk)return `${left?`<div class="event-stack gk">${left}</div>`:''}${gfRows?`<div class="goal-stack gk gk-for">${gfRows}</div>`:''}${gaRows?`<div class="goal-stack gk-conceded">${gaRows}</div>`:''}`;
+ const goalRows=gfRows+gaRows;
+ return `${left?`<div class="event-stack">${left}</div>`:''}${goalRows?`<div class="goal-stack">${goalRows}</div>`:''}`
 }
 function bindEditor(host,m,mode){
  host.querySelectorAll('[data-slot]').forEach(el=>el.onclick=e=>{e.stopPropagation();openSlotModal(m.id,Number(el.dataset.slot),mode)});
@@ -199,8 +202,13 @@ async function drawSnapshotPlayer(ctx,pos,slot){
  const fv=String(p.foot||'R').toUpperCase();if(fv==='BOTH'){canvasText(ctx,'L',cx+11,cy+28.25,12,'#ff1900',true);canvasText(ctx,'R',cx+20,cy+28.25,12,'#000',true)}else canvasText(ctx,fv,cx+15.2685,cy+28.25,12,fv==='L'?'#ff1900':'#000',true);
  canvasText(ctx,p.height?`${p.height}cm`:'',cx+75.206,cy+28.25,12,'#000',true);
  let evY=g.top+5;for(const type of [EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD])if(hasEvent(pos,type)){await drawCanvasEventIcon(ctx,EVENT_META[type].icon,g.left-17,evY,20,20);evY+=22}
- const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST),isGk=slot.label==='GK';let gy=g.top+(isGk?48:8),gx=g.left+101,tx=g.left+118;
- for(const item of [...gf.map(e=>({e,type:EVENT_TYPES.GOAL_FOR,color:'#0433ff'})),...ga.map(e=>({e,type:EVENT_TYPES.GOAL_AGAINST,color:'#ff1900'}))]){await drawCanvasEventIcon(ctx,EVENT_META[item.type].icon,gx,gy,15,15);canvasText(ctx,minuteLabel(item.e),tx,gy+7.5,9,item.color,true,'left');gy+=16}
+ const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST),isGk=slot.label==='GK';
+ if(isGk){
+   let gyFor=g.top+48;for(const e of gf){await drawCanvasEventIcon(ctx,EVENT_META.GOAL_FOR.icon,g.left+101,gyFor,15,15);canvasText(ctx,minuteLabel(e),g.left+118,gyFor+7.5,9,'#0433ff',true,'left');gyFor+=16}
+   let gyGa=g.top;for(const e of ga){await drawCanvasEventIcon(ctx,EVENT_META.GOAL_AGAINST.icon,g.left+97,gyGa,14,14);canvasText(ctx,minuteLabel(e),g.left+113,gyGa+7,9,'#ff1900',true,'left');gyGa+=14}
+ }else{
+   let gy=g.top+8;for(const item of [...gf.map(e=>({e,type:EVENT_TYPES.GOAL_FOR,color:'#0433ff'})),...ga.map(e=>({e,type:EVENT_TYPES.GOAL_AGAINST,color:'#ff1900'}))]){await drawCanvasEventIcon(ctx,EVENT_META[item.type].icon,g.left+101,gy,15,15);canvasText(ctx,minuteLabel(item.e),g.left+118,gy+7.5,9,item.color,true,'left');gy+=16}
+ }
 }
 async function drawSnapshotSubGoal(ctx,sg){
  const name=benchGoalName(sg),num=benchGoalNumber(sg),minute=String(sg?.goalMinute||'').replace(/'/g,'').trim();if(!name&&!num)return;
@@ -215,7 +223,7 @@ async function renderLineupSnapshotPng(m){
  const data=canvas.toDataURL('image/png');summaryImageCache.set(key,data);return data;
 }
 function summaryMatches(){return filledPreviousMatches().slice(-3)}
-function summaryResultColor(code){return code==='W'?'#ff3b30':code==='L'?'#30b64a':'#d58b00'}
+function summaryResultColor(code){return code==='W'?'#ff3b30':code==='D'?'#0b2e59':'#30b64a'}
 async function renderSummarySlideCanvas(pageIndex){
  const canvas=document.createElement('canvas');canvas.width=1920;canvas.height=1080;const ctx=canvas.getContext('2d');const grad=ctx.createLinearGradient(0,0,0,1080);grad.addColorStop(0,'rgb(115,191,249)');grad.addColorStop(1,'rgb(51,116,182)');ctx.fillStyle=grad;ctx.fillRect(0,0,1920,1080);
  if(pageIndex===0){
@@ -235,14 +243,7 @@ function renderFullReport(){const pages=reportPages();if(ui.reportIndex>=pages.l
 function reportPageHtml(m){const tpl=matchTemplate(m);let title='';if(m.kind==='EXPECTED')title=state.settings?.reportTitleExpected||'预计首发名单';else if(m.kind==='SUBS')title=state.settings?.reportTitleSubs||'主要替补球员';else title=`${m.roundNumber||''}_ VS ${m.opponentName||''} _ ${m.goalsFor||0}-${m.goalsAgainst||0} (${RESULT_CN[m.result]||'平'})`;
  const players=(m.positions||[]).map(pos=>{const slot=tpl[pos.positionIndex];if(!slot)return'';return reportPlayerHtml(pos,slot)}).join('');const subGoals=m.kind==='MATCH'?(m.subGoals||[]).map(reportSubGoalHtml).join(''):'';return `<div class="report-page"><img class="field-img" src="assets/field_exact_4x.jpg"><div class="report-title">${escapeHtml(title)}</div>${subGoals}${players}</div>`}
 function reportXY(slot){return{xPct:Math.max(0,Math.min(100,slot.x??50)),yPct:15.1+.885*(slot.y??50)}}
-function reportPlayerHtml(pos,slot){const p=playerById(pos.playerId);if(!p)return'';const xy=reportXY(slot);const anchorX=xy.xPct/100*540,anchorY=xy.yPct/100*720;const left=anchorX-59.9375,top=anchorY-94.369;const nm=cleanName(p.name),small=nm.length>9;const isGk=slot.label==='GK';const leftEvents=[EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD].filter(t=>hasEvent(pos,t)).map(t=>`<img src="${EVENT_META[t].icon}">`).join('');const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST);const goalRows=[...gf.map(e=>`<span class="report-goal for"><img src="${EVENT_META.GOAL_FOR.icon}">${minuteLabel(e)}</span>`),...ga.map(e=>`<span class="report-goal against"><img src="${EVENT_META.GOAL_AGAINST.icon}">${minuteLabel(e)}</span>`)].join('');return `<div class="report-player" style="left:${left}px;top:${top}px">${leftEvents?`<div class="report-events ${isGk?'gk':''}">${leftEvents}</div>`:''}${goalRows?`<div class="report-goals ${isGk?'gk':''}">${goalRows}</div>`:''}${p.photoAsset?`<img class="head" src="${p.photoAsset}">`:''}<div class="report-card"><div class="fill-num"></div><div class="fill-name"></div><div class="fill-foot"></div><div class="fill-height"></div><div class="outer"></div><div class="vline"></div><div class="hline"></div><span class="txt txt-num ${isU21(p)?'u21':''}">${p.squadNumber}</span><span class="txt txt-name ${small?'small':''}">${escapeHtml(nm)}</span><span class="txt txt-foot">${footDisplayHtml(p.foot)}</span><span class="txt txt-height">${p.height?`${p.height}cm`:'—'}</span></div></div>`}
-async function renderSummaryReport(){
- document.body.dataset.reportMode='SUMMARY';const strip=document.getElementById('reportStrip'),preview=document.getElementById('reportPreview'),pp=document.getElementById('printPages');
- strip.innerHTML=[0,1].map(i=>`<button class="report-thumb summary-thumb ${i===ui.reportIndex?'active':''}" data-summary-page="${i}"><div class="tiny summary-tiny"><span>${i===0?'3 Matches':'XI + Subs'}</span></div><span>Slide ${i+1}</span></button>`).join('');strip.querySelectorAll('[data-summary-page]').forEach(b=>b.onclick=()=>{ui.reportIndex=Number(b.dataset.summaryPage);renderSummaryReport()});
- preview.innerHTML='<div class="summary-loading">Rendering Summary Report…</div>';
- try{const data=await renderSummarySlideCanvas(ui.reportIndex);preview.innerHTML=`<img class="summary-report-page" src="${data}" alt="Summary slide ${ui.reportIndex+1}">`;if(pp){const both=await Promise.all([renderSummarySlideCanvas(0),renderSummarySlideCanvas(1)]);pp.innerHTML=both.map((src,i)=>`<div class="summary-print-slide"><img src="${src}" alt="Summary ${i+1}"></div>`).join('')}}catch(e){console.error(e);preview.innerHTML=`<div class="empty-state">Summary preview error: ${escapeHtml(e.message||e)}</div>`}fitPreview();
-}
-function renderReport(){const sel=document.getElementById('reportModeSelect');if(sel)sel.value=ui.reportMode||'FULL';document.body.dataset.reportMode=ui.reportMode||'FULL';return ui.reportMode==='SUMMARY'?renderSummaryReport():renderFullReport()}
+function reportPlayerHtml(pos,slot){const p=playerById(pos.playerId);if(!p)return'';const xy=reportXY(slot);const anchorX=xy.xPct/100*540,anchorY=xy.yPct/100*720;const left=anchorX-59.9375,top=anchorY-94.369;const nm=cleanName(p.name),small=nm.length>9;const isGk=slot.label==='GK';const leftEvents=[EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD].filter(t=>hasEvent(pos,t)).map(t=>`<img src="${EVENT_META[t].icon}">`).join('');const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST);const gfRows=gf.map(e=>`<span class="report-goal for"><img src="${EVENT_META.GOAL_FOR.icon}">${minuteLabel(e)}</span>`).join('');const gaRows=ga.map(e=>`<span class="report-goal against"><img src="${EVENT_META.GOAL_AGAINST.icon}">${minuteLabel(e)}</span>`).join('');const goalHtml=isGk?`${gfRows?`<div class="report-goals gk gk-for">${gfRows}</div>`:''}${gaRows?`<div class="report-goals gk-conceded">${gaRows}</div>`:''}`:(gfRows||gaRows?`<div class="report-goals">${gfRows}${gaRows}</div>`:'');return `<div class="report-player" style="left:${left}px;top:${top}px">${leftEvents?`<div class="report-events ${isGk?'gk':''}">${leftEvents}</div>`:''}${goalHtml}${p.photoAsset?`<img class="head" src="${p.photoAsset}">`:''}<div class="report-card"><div class="fill-num"></div><div class="fill-name"></div><div class="fill-foot"></div><div class="fill-height"></div><div class="outer"></div><div class="vline"></div><div class="hline"></div><span class="txt txt-num ${isU21(p)?'u21':''}">${p.squadNumber}</span><span class="txt txt-name ${small?'small':''}">${escapeHtml(nm)}</span><span class="txt txt-foot">${footDisplayHtml(p.foot)}</span><span class="txt txt-height">${p.height?`${p.height}cm`:'—'}</span></div></div>`}
 function fitPreview(){const canvas=document.querySelector('.report-canvas'),summary=document.querySelector('.summary-report-page'),page=document.querySelector('.report-page');if(canvas&&summary){const scale=Math.min(1,(canvas.clientWidth-18)/1024);summary.style.transform=`scale(${scale})`;summary.parentElement.style.height=`${576*scale}px`;summary.parentElement.style.width=`${1024*scale}px`;return}if(canvas&&page&&window.innerWidth<720){const scale=Math.min(1,(canvas.clientWidth-12)/540);page.style.transform=`scale(${scale})`;page.parentElement.style.height=`${720*scale}px`;page.parentElement.style.width=`${540*scale}px`}else if(page){page.style.transform='';if(page.parentElement){page.parentElement.style.height='';page.parentElement.style.width=''}}}
 
 async function urlToDataUri(url){if(!url)throw new Error('Missing image source');if(String(url).startsWith('data:'))return url;if(imageDataCache.has(url))return imageDataCache.get(url);const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`Image load failed (${r.status}): ${url}`);const b=await r.blob();const data=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(fr.error||new Error('Image conversion failed'));fr.readAsDataURL(b)});imageDataCache.set(url,data);return data}
@@ -393,7 +394,7 @@ async function addSummaryHeader(pptx,slide,m,x,y,w,h){
  slide.addText(m.opponentName||'',{x:x+ws[0],y:y+.015,w:ws[1],h:h*.47,fontFace:'PingFang SC',fontSize:6.8,bold:true,align:'center',valign:'mid',margin:0,fit:'shrink'});
  slide.addText(String(m.opponentNameEn||'').toUpperCase(),{x:x+ws[0],y:y+h*.46,w:ws[1],h:h*.49,fontFace:'Arial',fontSize:6.8,bold:true,align:'center',valign:'mid',margin:0,fit:'shrink'});
  slide.addText(score,{x:x+ws[0]+ws[1],y,w:ws[2],h,fontFace:'Arial',fontSize:12,bold:true,align:'center',valign:'mid',margin:0});
- const color=result==='W'?'FF3B30':result==='L'?'30B64A':'D58B00';slide.addText(`${RESULT_CN[result]} (${result})`,{x:x+ws[0]+ws[1]+ws[2],y,w:ws[3],h,fontFace:'Arial',fontSize:11,bold:true,color,align:'center',valign:'mid',margin:0,fit:'shrink'});
+ const color=result==='W'?'FF3B30':result==='D'?'0B2E59':'30B64A';slide.addText(`${RESULT_CN[result]} (${result})`,{x:x+ws[0]+ws[1]+ws[2],y,w:ws[3],h,fontFace:'Arial',fontSize:11,bold:true,color,align:'center',valign:'mid',margin:0,fit:'shrink'});
 }
 async function exportSummaryPptx(){
  const btn=document.getElementById('pptxBtn'),status=document.getElementById('exportStatus');btn.disabled=true;status.textContent='Building Summary Report…';
@@ -465,14 +466,15 @@ async function addPptxPlayer(pptx,slide,p,pos,slot){
    evY+=22;
  }
  const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST),isGk=slot.label==='GK';
- let gy=g.top+(isGk?48:8);
- const gx=g.left+101,tx=g.left+118;
- const goalItems=[...gf.map(e=>({e,type:EVENT_TYPES.GOAL_FOR,color:'0433FF'})),...ga.map(e=>({e,type:EVENT_TYPES.GOAL_AGAINST,color:'FF1900'}))];
- for(let i=0;i<goalItems.length;i++){
-   const item=goalItems[i],data=await urlToDataUri(EVENT_META[item.type].icon);
-   slide.addImage({data,x:pt(gx),y:pt(gy),w:pt(15),h:pt(15),objectName:`${key}__GOAL_${i}__BALL`});
-   slide.addText(minuteLabel(item.e),{x:pt(tx),y:pt(gy-1),w:pt(42),h:pt(17),fontFace:'Arial',fontSize:9,bold:true,color:item.color,margin:0,fill:transparent,line:{color:'FFFFFF',transparency:100},breakLine:false,fit:'shrink',objectName:`${key}__GOAL_${i}__MINUTE`});
-   gy+=16;
+ let goalIndex=0;
+ if(isGk){
+   let gyFor=g.top+48;
+   for(const e of gf){const data=await urlToDataUri(EVENT_META.GOAL_FOR.icon);slide.addImage({data,x:pt(g.left+101),y:pt(gyFor),w:pt(15),h:pt(15),objectName:`${key}__GOAL_${goalIndex}__BALL`});slide.addText(minuteLabel(e),{x:pt(g.left+118),y:pt(gyFor-1),w:pt(42),h:pt(17),fontFace:'Arial',fontSize:9,bold:true,color:'0433FF',margin:0,fill:transparent,line:{color:'FFFFFF',transparency:100},breakLine:false,fit:'shrink',objectName:`${key}__GOAL_${goalIndex}__MINUTE`});goalIndex++;gyFor+=16}
+   let gyGa=g.top;
+   for(const e of ga){const data=await urlToDataUri(EVENT_META.GOAL_AGAINST.icon);slide.addImage({data,x:pt(g.left+97),y:pt(gyGa),w:pt(14),h:pt(14),objectName:`${key}__GOAL_${goalIndex}__BALL`});slide.addText(minuteLabel(e),{x:pt(g.left+113),y:pt(gyGa-1),w:pt(42),h:pt(16),fontFace:'Arial',fontSize:9,bold:true,color:'FF1900',margin:0,fill:transparent,line:{color:'FFFFFF',transparency:100},breakLine:false,fit:'shrink',objectName:`${key}__GOAL_${goalIndex}__MINUTE`});goalIndex++;gyGa+=14}
+ }else{
+   let gy=g.top+8;
+   for(const item of [...gf.map(e=>({e,type:EVENT_TYPES.GOAL_FOR,color:'0433FF'})),...ga.map(e=>({e,type:EVENT_TYPES.GOAL_AGAINST,color:'FF1900'}))]){const data=await urlToDataUri(EVENT_META[item.type].icon);slide.addImage({data,x:pt(g.left+101),y:pt(gy),w:pt(15),h:pt(15),objectName:`${key}__GOAL_${goalIndex}__BALL`});slide.addText(minuteLabel(item.e),{x:pt(g.left+118),y:pt(gy-1),w:pt(42),h:pt(17),fontFace:'Arial',fontSize:9,bold:true,color:item.color,margin:0,fill:transparent,line:{color:'FFFFFF',transparency:100},breakLine:false,fit:'shrink',objectName:`${key}__GOAL_${goalIndex}__MINUTE`});goalIndex++;gy+=16}
  }
 }
 function fileToDataUri(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)})}

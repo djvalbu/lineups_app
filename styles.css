@@ -294,3 +294,11 @@ label{color:#9cb7ca}
 .summary-report-page{width:1024px;height:576px;display:block;transform-origin:top left;box-shadow:0 18px 48px rgba(0,0,0,.35)}.summary-loading{width:1024px;height:576px;display:grid;place-items:center;color:#a9bed0;background:#0c1d2b;border-radius:8px}
 .summary-thumb .summary-tiny{width:96px;height:54px;background:linear-gradient(#73bff9,#3374b6);display:grid;place-items:center}.summary-thumb .summary-tiny span{color:#07111a;font-size:9px;font-weight:800}.summary-print-slide{display:none}
 @media print{body[data-report-mode="SUMMARY"] .print-pages{display:block!important}body[data-report-mode="SUMMARY"] .print-pages .report-page{display:none!important}body[data-report-mode="SUMMARY"] .summary-print-slide{display:block!important;width:13.333in;height:7.5in;page-break-after:always;margin:0!important}body[data-report-mode="SUMMARY"] .summary-print-slide:last-child{page-break-after:auto}body[data-report-mode="SUMMARY"] .summary-print-slide img{display:block;width:13.333in;height:7.5in}}
+
+/* v3.5.1 — goalkeeper goals-against placement */
+.goal-stack.gk-conceded{left:100px!important;right:auto!important;top:0!important;gap:0!important;align-items:flex-start!important}
+.goal-stack.gk-conceded .goal-line{height:14px;line-height:14px}
+.goal-stack.gk-conceded .goal-line img{width:14px!important;height:14px!important}
+.report-goals.gk-conceded{left:97px!important;right:auto!important;top:0!important;gap:0!important;align-items:flex-start!important}
+.report-goals.gk-conceded .report-goal{height:14px;line-height:14px}
+.report-goals.gk-conceded .report-goal img{width:14px!important;height:14px!important}

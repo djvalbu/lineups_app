@@ -160,3 +160,11 @@ When a player's preferred foot is set to both feet, the app now displays **L R**
 
 ## v3.5 — Summary Report
 Select **Full Report** or **Summary Report** in the Report view. Summary Report reproduces the supplied two-slide Keynote structure: the last three matches on slide 1, and Expected XI + Main Subs on slide 2. Use **Home match** in Previous Matches so the Summary score is displayed in Home–Away order. Team settings include **Report Initials** for filenames such as `2026_MD26_YBLD.pptx`.
+
+## v3.5.1 — GK conceded goals + Summary colors
+For goalkeepers, red Goal Against markers begin at the **upper-right corner of the head photo** and stack vertically downward with compact spacing, avoiding the name cell even when several goals are entered.
+
+Summary Report result colors:
+- **W** = red
+- **D** = navy blue
+- **L** = green
