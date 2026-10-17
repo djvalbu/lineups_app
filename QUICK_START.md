@@ -1,3 +1,5 @@
+# Opponent Lineup App v3.5.8 – Event Icons Applied
+
 # Opponent Lineup v3.0 — Quick Start
 
 ## First use

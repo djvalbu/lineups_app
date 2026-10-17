@@ -168,7 +168,9 @@ function editorHtml(m,mode,matches=[]){
 function miniPlayerHtml(pos){const p=playerById(pos.playerId);if(!p)return '<button class="empty-slot">+</button>';const nm=cleanName(p.name),nameSize=playerNameFontSize(nm,12,74,9);return `<button class="mini-player" data-occupied title="Edit ${escapeHtml(nm)}">${eventStacks(pos,'mini')}${p.photoAsset?`<img src="${p.photoAsset}" alt="">`:''}<div class="mini-card"><div class="r"><span class="num ${isU21(p)?'u21':''}">${p.squadNumber}</span><span class="nm" style="font-size:${nameSize}px">${escapeHtml(nm)}</span></div><div class="r"><span class="foot">${footDisplayHtml(p.foot)}</span><span class="ht">${p.height?`${p.height}cm`:'—'}</span></div></div></button>`}
 function eventStacks(pos,kind='mini'){
  const isGk=pos?.positionLabel==='GK';
- const left=[EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.DOUBT,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD].filter(t=>hasEvent(pos,t)).map(t=>`<img src="${EVENT_META[t].icon}" alt="">`).join('');
+ const stackOrder=[EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.DOUBT,EVENT_TYPES.INJURY,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.NEW_SIGNING];
+ const iconClass=t=>t===EVENT_TYPES.YELLOW_ACCUM_4?'event-icon accum4':t===EVENT_TYPES.YELLOW_CARD?'event-icon card-yellow':t===EVENT_TYPES.RED_CARD?'event-icon card-red':'event-icon';
+ const left=stackOrder.filter(t=>hasEvent(pos,t)).map(t=>`<img class="${iconClass(t)}" src="${EVENT_META[t].icon}" alt="${escapeHtml(EVENT_META[t].label)}">`).join('');
  const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST);
  const gfRows=gf.map(e=>`<span class="goal-line for"><img src="${EVENT_META.GOAL_FOR.icon}">${minuteLabel(e)}</span>`).join('');
  const gaRows=ga.map(e=>`<span class="goal-line against"><img src="${EVENT_META.GOAL_AGAINST.icon}">${minuteLabel(e)}</span>`).join('');

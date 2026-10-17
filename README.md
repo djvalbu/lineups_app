@@ -1,3 +1,5 @@
+# Opponent Lineup App v3.5.8 – Event Icons Applied
+
 # Opponent Lineup Report Builder v2.1
 
 ## What this build implements
