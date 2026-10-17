@@ -182,3 +182,6 @@ Player names now use width-based fitting rather than a simple character-count ru
 
 ## v3.5.6 — Blueberry draw color
 The draw/result color used in the Summary Report (on-screen and PPTX/Keynote export) has been changed from a very dark navy to a lighter **Blueberry** blue to better match the desired Keynote appearance.
+
+## v3.5.7 — Doubt status
+Player event editing now includes **Doubt** with the approved yellow `?` icon. It is treated exactly like the other left-side status icons: same position, same dimensions, and included in every report/export format.

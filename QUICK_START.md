@@ -52,3 +52,6 @@ Export **PPTX / Keynote** and open the file in Keynote. A single click on a line
 
 ## Player photos
 When you upload a player photo in **Squad**, just choose the image normally. White/off-white background removal happens automatically when you press **Save**. Dongqiudi imports are processed automatically too. Existing stored photos are cleaned once after this version is first opened.
+
+## Doubt status
+Open a player in **Matches**, **Expected XI** or **Main Subs** and enable **Doubt**. The yellow question-mark appears on the left side of the player at the same size and alignment as the other status icons.
