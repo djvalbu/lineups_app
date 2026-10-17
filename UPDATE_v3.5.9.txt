@@ -1,0 +1,6 @@
+v3.5.9 - Export parity
+- Full PPTX and Summary Report snapshot share the same status-icon stack layout.
+- Yellow/red card design and x4 accumulation match app assets.
+- Bottom edge of stack stays 3 pt above dorsal/name cell.
+- Summary PDF/print uses updated snapshot renderer.
+- No user data or saved reports included/modified.

@@ -282,6 +282,14 @@ async function preparePlayerPhotoAsset(src){
 }
 function canvasText(ctx,text,x,y,size,color='#000',bold=true,align='center'){ctx.save();ctx.fillStyle=color;ctx.font=`${bold?'700':'500'} ${size}px "PingFang SC","Hiragino Sans GB",Arial,sans-serif`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(String(text??''),x,y);ctx.restore()}
 async function drawCanvasEventIcon(ctx,src,x,y,w,h){try{const im=await canvasImage(src);ctx.drawImage(im,x,y,w,h)}catch(e){console.warn(e)}}
+// Shared status layout for full PPTX and Summary Report snapshots.
+// Bottom edge of last icon is 3 pt above the player's dorsal/name cell.
+function exportStatusLayout(pos,g){
+ const order=[EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.DOUBT,EVENT_TYPES.INJURY,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.NEW_SIGNING];
+ const types=order.filter(t=>hasEvent(pos,t));
+ const bottom=g.top+76.119-3, gap=2, height=18;
+ return types.map((type,i)=>({type,x:g.left+6+(type===EVENT_TYPES.YELLOW_ACCUM_4?-2:0),y:bottom-(types.length-i)*height-(types.length-i-1)*gap,w:type===EVENT_TYPES.YELLOW_ACCUM_4?40:18,h:height}));
+}
 async function drawSnapshotPlayer(ctx,pos,slot){
  const p=playerById(pos.playerId);if(!p)return;const g=reportPlayerGeom(slot),cx=g.left,cy=g.top+76.119;
  if(p.photoAsset){try{const im=await canvasImage(p.photoAsset);ctx.drawImage(im,g.left+22.438,g.top,75,75)}catch(e){console.warn(e)}}
@@ -290,7 +298,7 @@ async function drawSnapshotPlayer(ctx,pos,slot){
  canvasText(ctx,p.squadNumber,cx+15.2685,cy+10,15,isU21(p)?'#00cfe8':'#fff',true);const nm=cleanName(p.name),nameSize=playerNameFontSize(nm,15,81,10);canvasText(ctx,nm,cx+75.206,cy+10,nameSize,'#000',true);
  const fv=String(p.foot||'R').toUpperCase();if(fv==='BOTH'){canvasText(ctx,'L',cx+11,cy+28.25,12,'#ff1900',true);canvasText(ctx,'R',cx+20,cy+28.25,12,'#000',true)}else canvasText(ctx,fv,cx+15.2685,cy+28.25,12,fv==='L'?'#ff1900':'#000',true);
  canvasText(ctx,p.height?`${p.height}cm`:'',cx+75.206,cy+28.25,12,'#000',true);
- let evY=g.top+5;for(const type of [EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.DOUBT,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD])if(hasEvent(pos,type)){await drawCanvasEventIcon(ctx,EVENT_META[type].icon,g.left-17,evY,20,20);evY+=22}
+ for(const item of exportStatusLayout(pos,g))await drawCanvasEventIcon(ctx,EVENT_META[item.type].icon,item.x,item.y,item.w,item.h);
  const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST),isGk=slot.label==='GK';
  if(isGk){
    let gyFor=g.top+48;for(const e of gf){await drawCanvasEventIcon(ctx,EVENT_META.GOAL_FOR.icon,g.left+101,gyFor,15,15);canvasText(ctx,minuteLabel(e),g.left+118,gyFor+7.5,9,'#0433ff',true,'left');gyFor+=16}
@@ -306,7 +314,7 @@ async function drawSnapshotSubGoal(ctx,sg){
  canvasText(ctx,num||'?',left+15.2685,top+10,15,'#fff',true);canvasText(ctx,name,left+75.206,top+10,playerNameFontSize(name,15,81,10),'#000',true);const bx=left+cardW+gap1;await drawCanvasEventIcon(ctx,EVENT_META.GOAL_FOR.icon,bx,top+2.5,ballW,ballW);if(minute)canvasText(ctx,`( ${minute}' )`,bx+ballW+gap2,top+10,9,'#0433ff',true,'left');
 }
 async function renderLineupSnapshotPng(m){
- const key=`${activeReport()?.id||'r'}_${m?.id||'m'}_${activeReport()?.updatedAt||''}_${(m?.positions||[]).length}_${(m?.subGoals||[]).length}`;if(summaryImageCache.has(key))return summaryImageCache.get(key);
+ const key=`${activeReport()?.id||'r'}_${m?.id||'m'}_${activeReport()?.updatedAt||''}_${(m?.positions||[]).length}_${(m?.subGoals||[]).length}_${JSON.stringify((m?.positions||[]).map(p=>p.events||p.statuses||p))}`;if(summaryImageCache.has(key))return summaryImageCache.get(key);
  const canvas=document.createElement('canvas');canvas.width=2160;canvas.height=2880;const ctx=canvas.getContext('2d');ctx.scale(4,4);const field=await canvasImage('assets/field_exact_4x.jpg');ctx.drawImage(field,0,0,540,720);
  const tpl=matchTemplate(m);for(const pos of (m.positions||[])){const slot=tpl[pos.positionIndex];if(slot)await drawSnapshotPlayer(ctx,pos,slot)}if(m.kind==='MATCH')for(const sg of (m.subGoals||[]))await drawSnapshotSubGoal(ctx,sg);
  const data=canvas.toDataURL('image/png');summaryImageCache.set(key,data);return data;
@@ -575,12 +583,10 @@ async function addPptxPlayer(pptx,slide,p,pos,slot){
    footValue;
  slide.addText(footPptx,{...base,x:pt(cx),y:pt(cy+20),w:pt(30.537),h:pt(16.5),fontSize:12,color:footValue==='L'?'FF1900':'000000',objectName:`${key}__BASE_FOOT_TEXT`});
  slide.addText(p.height?`${p.height}cm`:'',{...base,x:pt(cx+30.537),y:pt(cy+20),w:pt(89.338),h:pt(16.5),fontSize:12,color:'000000',objectName:`${key}__BASE_HEIGHT_TEXT`});
- let evY=g.top+5,evIndex=0;
- for(const type of [EVENT_TYPES.NEW_SIGNING,EVENT_TYPES.LEFT_CLUB,EVENT_TYPES.INJURY,EVENT_TYPES.DOUBT,EVENT_TYPES.YELLOW_CARD,EVENT_TYPES.YELLOW_ACCUM_4,EVENT_TYPES.RED_CARD]){
-   if(!hasEvent(pos,type))continue;
-   const data=await urlToDataUri(EVENT_META[type].icon);
-   slide.addImage({data,x:pt(g.left-17),y:pt(evY),w:pt(20),h:pt(20),objectName:`${key}__STATUS_${evIndex++}_${type}`});
-   evY+=22;
+ let evIndex=0;
+ for(const item of exportStatusLayout(pos,g)){
+   const data=await urlToDataUri(EVENT_META[item.type].icon);
+   slide.addImage({data,x:pt(item.x),y:pt(item.y),w:pt(item.w),h:pt(item.h),objectName:`${key}__STATUS_${evIndex++}_${item.type}`});
  }
  const gf=eventsFor(pos,EVENT_TYPES.GOAL_FOR),ga=eventsFor(pos,EVENT_TYPES.GOAL_AGAINST),isGk=slot.label==='GK';
  let goalIndex=0;
